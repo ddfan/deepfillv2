@@ -105,7 +105,7 @@ def Trainer(opt):
 
     # Training loop
     for epoch in range(opt.epochs):
-        for batch_idx, (grayscale, mask) in enumerate(dataloader):
+        for batch_idx, (grayscale, mask, groundtruth) in enumerate(dataloader):
 
             # Load and put to cuda
             grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
@@ -114,10 +114,15 @@ def Trainer(opt):
             # forward propagation
             optimizer_g.zero_grad()
             out = generator(grayscale, mask)  # out: [B, 1, 256, 256]
-            out_wholeimg = grayscale * (1 - mask) + out * mask  # in range [0, 1]
+            if groundtruth is None:
+                out_wholeimg = grayscale * (1 - mask) + out * mask  # in range [0, 1]
+                # Mask L1 Loss
+                MaskL1Loss = L1Loss(out_wholeimg, grayscale)
+            else:
+                out_wholeimg = out * mask  # in range [0, 1]
 
-            # Mask L1 Loss
-            MaskL1Loss = L1Loss(out_wholeimg, grayscale)
+                # Mask L1 Loss
+                MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
 
             # Compute losses
             loss = MaskL1Loss

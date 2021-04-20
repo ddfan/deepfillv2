@@ -18,7 +18,7 @@ python train.py \
 --lr_decrease_factor 0.5 \
 --num_workers 8 \
 --imgsize 256 \
---mask_type 'free_form' \
+--mask_type 'known' \
 --margin 10 \
 --mask_num 20 \
 --bbox_shape 30 \

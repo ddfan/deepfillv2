@@ -10,7 +10,7 @@ from PIL import Image
 
 import utils
 
-ALLMASKTYPES = ["single_bbox", "bbox", "free_form"]
+ALLMASKTYPES = ["single_bbox", "bbox", "free_form", "known"]
 
 
 class DomainTransferDataset(Dataset):
@@ -83,54 +83,99 @@ class InpaintDataset(Dataset):
         return len(self.imglist)
 
     def __getitem__(self, index):
+        if self.opt.mask_type == "known":
+            datafilename = self.imglist[index]
+            datafilepath = os.path.join(self.opt.baseroot, datafilename)  
+            data = np.load(datafilepath)
 
-        # image read
-        imgname = self.imglist[index]  # name of one image
-        imgpath = os.path.join(self.opt.baseroot, imgname)  # path of one image
-        img = Image.open(imgpath).convert("RGB")  # read one image (RGB)
-        img = np.array(img)  # read one image
-        # image resize
-        img = cv2.resize(
-            img, (self.opt.imgsize, self.opt.imgsize), interpolation=cv2.INTER_CUBIC
-        )
-        # grayish
-        grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            grayscale = data["elevation_raw"].astype(np.float32)
+            groundtruth = data["elevation_ground_truth"].astype(np.float32)
 
-        # mask
-        if self.opt.mask_type == "single_bbox":
-            mask = self.bbox2mask(
-                shape=self.opt.imgsize,
-                margin=self.opt.margin,
-                bbox_shape=self.opt.bbox_shape,
-                times=1,
+            # mask = data["known"]
+
+            # generate mask from groundtruth:
+            valid_ground_truth = np.isfinite(groundtruth).astype(np.float32)
+            valid_input = np.isfinite(grayscale).astype(np.float32)
+            mask = valid_ground_truth * (1.0 - valid_input)
+
+            # import matplotlib.pyplot as plt
+            # plt.subplot(221)
+            # plt.imshow(grayscale)
+            # plt.title("elevation_raw")
+            # plt.colorbar()
+            # plt.subplot(222)
+            # plt.imshow(mask)
+            # plt.title("mask")
+            # plt.colorbar()
+            # plt.subplot(223)
+            # plt.imshow(groundtruth)
+            # plt.title("ground_truth")
+            # plt.colorbar()
+            # plt.subplot(224)
+            # plt.imshow(np.abs(groundtruth - grayscale))
+            # plt.title("mae")
+            # plt.colorbar()
+            # plt.show()
+            # quit()
+
+            # TODO: normalize inputs
+            # TODO:  do flip/shift data augmentation
+
+            grayscale = torch.from_numpy(grayscale).unsqueeze(0).contiguous()
+            mask = torch.from_numpy(mask).unsqueeze(0).contiguous()
+            groundtruth = torch.from_numpy(groundtruth).unsqueeze(0).contiguous()
+
+            # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
+            return grayscale, mask, groundtruth
+        else:
+            # image read
+            imgname = self.imglist[index]  # name of one image
+            imgpath = os.path.join(self.opt.baseroot, imgname)  # path of one image
+            img = Image.open(imgpath).convert("RGB")  # read one image (RGB)
+            img = np.array(img)  # read one image
+            # image resize
+            img = cv2.resize(
+                img, (self.opt.imgsize, self.opt.imgsize), interpolation=cv2.INTER_CUBIC
             )
-        if self.opt.mask_type == "bbox":
-            mask = self.bbox2mask(
-                shape=self.opt.imgsize,
-                margin=self.opt.margin,
-                bbox_shape=self.opt.bbox_shape,
-                times=self.opt.mask_num,
-            )
-        if self.opt.mask_type == "free_form":
-            mask = self.random_ff_mask(
-                shape=self.opt.imgsize,
-                max_angle=self.opt.max_angle,
-                max_len=self.opt.max_len,
-                max_width=self.opt.max_width,
-                times=self.opt.mask_num,
-            )
-        mask = torch.from_numpy(mask).contiguous()
+            # grayish
+            grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # normalization
-        grayscale = (
-            torch.from_numpy(grayscale.astype(np.float32) / 255.0)
-            .unsqueeze(0)
-            .contiguous()
-        )
-        # img = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+            # mask
+            if self.opt.mask_type == "single_bbox":
+                mask = self.bbox2mask(
+                    shape=self.opt.imgsize,
+                    margin=self.opt.margin,
+                    bbox_shape=self.opt.bbox_shape,
+                    times=1,
+                )
+            if self.opt.mask_type == "bbox":
+                mask = self.bbox2mask(
+                    shape=self.opt.imgsize,
+                    margin=self.opt.margin,
+                    bbox_shape=self.opt.bbox_shape,
+                    times=self.opt.mask_num,
+                )
+            if self.opt.mask_type == "free_form":
+                mask = self.random_ff_mask(
+                    shape=self.opt.imgsize,
+                    max_angle=self.opt.max_angle,
+                    max_len=self.opt.max_len,
+                    max_width=self.opt.max_width,
+                    times=self.opt.mask_num,
+                )
+            mask = torch.from_numpy(mask).contiguous()
 
-        # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
-        return grayscale, mask
+            # normalization
+            grayscale = (
+                torch.from_numpy(grayscale.astype(np.float32) / 255.0)
+                .unsqueeze(0)
+                .contiguous()
+            )
+            # img = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+
+            # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
+
+            return grayscale, mask, None
 
     def random_ff_mask(self, shape, max_angle=4, max_len=40, max_width=10, times=15):
         """Generate a random free form mask with configuration.
