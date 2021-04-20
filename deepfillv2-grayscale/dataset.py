@@ -84,7 +84,7 @@ class InpaintDataset(Dataset):
         n_split = int(self.opt.train_test_split * len(list_IDs))
         list_IDs_train = list_IDs[:n_split]
         train_idxs = np.arange(len(list_IDs_train))
-        np.random.shuffle(train_idxs)
+        np.random.shuffle(train_idxs)  # validation set is random subset
         n_train_no_val = int(self.opt.train_val_split * len(list_IDs_train))
         list_IDs_val = [list_IDs_train[idx] for idx in train_idxs[n_train_no_val:]]
         list_IDs_train = [list_IDs_train[idx] for idx in train_idxs[:n_train_no_val]]
@@ -106,52 +106,96 @@ class InpaintDataset(Dataset):
             datafilepath = os.path.join(self.opt.baseroot, datafilename)
             data = np.load(datafilepath)
 
-            grayscale = data["elevation_raw"].astype(np.float32)
-            groundtruth = data["elevation_ground_truth"].astype(np.float32)
-            # mask = data["known"].astype(np.float32)
+            grayscale = data["elevation_raw"]
+            groundtruth = data["elevation_ground_truth"]
 
-            # generate mask from groundtruth:
-            valid_ground_truth = np.isfinite(groundtruth).astype(np.float32)
-            valid_input = np.isfinite(grayscale).astype(np.float32)
-            mask = (1.0 - valid_input).astype(np.float32)
+            #####  Data augmentation ######
+            if not self.validation:
+                # rot 90
+                rot_rand = np.random.randint(0, 1)
+                if rot_rand == 1:
+                    grayscale = np.rot90(grayscale)
+                    groundtruth = np.rot90(groundtruth)
+                # flip
+                flip_rand = np.random.randint(0, 3)
+                if flip_rand == 1:  # flip
+                    grayscale = np.flipud(grayscale)
+                    groundtruth = np.flipud(groundtruth)
+                elif flip_rand == 2:
+                    grayscale = np.fliplr(grayscale)
+                    groundtruth = np.fliplr(groundtruth)
 
-            # normalize (crappy... need to improve this)
-            min_input_val = min(np.nanmin(grayscale), np.nanmin(groundtruth))
-            grayscale = (grayscale - min_input_val) / 4.0
-            groundtruth = (groundtruth - min_input_val) / 4.0
+                # add pepper noise
+                grayscale = self.add_noise_to_img(grayscale)
+                groundtruth = self.add_noise_to_img(groundtruth)
+
+                # random distortion in scale
+                scale_rand = np.random.rand() * 0.2 + 0.9
+                grayscale = grayscale * scale_rand
+                groundtruth = groundtruth * scale_rand
+            #####################################
+
+            # generate masks
+            valid_ground_truth = np.isfinite(groundtruth)
+            valid_input = np.isfinite(grayscale)
+            if self.validation:  # generate mask from known mask
+                mask = data["known"]
+            else:  # generate mask from groundtruth, with random variation
+                random_mask = self.random_ff_mask(
+                    shape=self.opt.imgsize,
+                    max_angle=self.opt.max_angle,
+                    max_len=self.opt.max_len,
+                    max_width=self.opt.max_width,
+                    times=self.opt.mask_num,
+                )[0, ...]
+                # mask = (1.0 - valid_input).astype(np.float32)
+                mask = valid_ground_truth * random_mask
+
+            # normalize
+            input_mean = np.nanmean(grayscale)
+            grayscale = (grayscale - input_mean) / 2.0
+            groundtruth = (groundtruth - input_mean) / 2.0
 
             # set invalid pixels to 0
             grayscale = np.nan_to_num(grayscale)
             groundtruth = np.nan_to_num(groundtruth)
 
-            # TODO: normalize inputs, between [0,1]
-            # TODO: do flip/shift data augmentation, scale, etc.
-            # TODO: add random maskings
+            if self.opt.view_input_only:
+                import matplotlib.pyplot as plt
 
-            # import matplotlib.pyplot as plt
-            # plt.subplot(221)
-            # plt.imshow(grayscale)
-            # plt.title("elevation_raw")
-            # # plt.colorbar()
-            # plt.subplot(222)
-            # plt.imshow(mask)
-            # plt.title("mask")
-            # # plt.colorbar()
-            # plt.subplot(223)
-            # plt.imshow(groundtruth)
-            # plt.title("ground_truth")
-            # # plt.colorbar()
-            # plt.subplot(224)
-            # plt.imshow(np.abs(groundtruth - grayscale))
-            # plt.title("mae")
-            # plt.colorbar()
-            # plt.show()
-            # quit()
+                plt.subplot(221)
+                plt.imshow(grayscale)
+                plt.title("elevation_raw")
+                # plt.colorbar()
+                plt.subplot(222)
+                plt.imshow(mask)
+                plt.title("mask")
+                # plt.colorbar()
+                plt.subplot(223)
+                plt.imshow(groundtruth)
+                plt.title("ground_truth")
+                # plt.colorbar()
+                plt.subplot(224)
+                plt.imshow(np.abs(groundtruth - grayscale))
+                plt.title("mae")
+                plt.colorbar()
+                plt.show()
+                quit()
 
-            grayscale = torch.from_numpy(grayscale).unsqueeze(0).contiguous()
-            mask = torch.from_numpy(mask).unsqueeze(0).contiguous()
-            groundtruth = torch.from_numpy(groundtruth).unsqueeze(0).contiguous()
-            output_mask = torch.from_numpy(valid_ground_truth).unsqueeze(0).contiguous()
+            grayscale = (
+                torch.from_numpy(grayscale.astype(np.float32)).unsqueeze(0).contiguous()
+            )
+            mask = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0).contiguous()
+            groundtruth = (
+                torch.from_numpy(groundtruth.astype(np.float32))
+                .unsqueeze(0)
+                .contiguous()
+            )
+            output_mask = (
+                torch.from_numpy(valid_ground_truth.astype(np.float32))
+                .unsqueeze(0)
+                .contiguous()
+            )
 
             # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
             return grayscale, mask, groundtruth, output_mask
@@ -277,6 +321,11 @@ class InpaintDataset(Dataset):
                 (bbox[1] + w) : (bbox[1] + bbox[3] - w),
             ] = 1.0
         return mask.reshape((1,) + mask.shape).astype(np.float32)
+
+    def add_noise_to_img(self, img, mean=0, sigma=0.01):
+        gauss = np.random.normal(mean, sigma, img.shape)
+        gauss = gauss.reshape(img.shape)
+        return img + gauss
 
 
 class InpaintDataset_val(Dataset):

@@ -54,6 +54,12 @@ if __name__ == "__main__":
         help="True for unchanged input data type",
     )
     parser.add_argument(
+        "--view_input_only",
+        type=int,
+        default=0,
+        help="True for viewing input data sample only",
+    )
+    parser.add_argument(
         "--checkpoint_interval",
         type=int,
         default=100,
