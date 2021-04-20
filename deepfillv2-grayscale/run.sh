@@ -9,7 +9,9 @@ python train.py \
 --multi_gpu False \
 --gpu_ids "0" \
 --epochs 100 \
---batch_size 8 \
+--batch_size 4 \
+--train_test_split 0.9 \
+--train_val_split 0.9 \
 --latent_channels 16 \
 --lr_g 1e-4 \
 --lambda_l1 1 \
@@ -17,7 +19,7 @@ python train.py \
 --lambda_gan 0.1 \
 --lr_decrease_epoch 10 \
 --lr_decrease_factor 0.5 \
---num_workers 8 \
+--num_workers 4 \
 --imgsize 400 \
 --mask_type 'known' \
 --margin 10 \

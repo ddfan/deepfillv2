@@ -86,6 +86,8 @@ def Trainer(opt):
 
     # Define the dataset
     trainset = dataset.InpaintDataset(opt)
+    validationset = dataset.InpaintDataset(opt, validation=True)
+
     print("The overall number of images equals to %d" % len(trainset))
 
     # Define the dataloader
@@ -94,7 +96,16 @@ def Trainer(opt):
         batch_size=opt.batch_size,
         shuffle=True,
         num_workers=opt.num_workers,
-        pin_memory=True,
+        pin_memory=False,
+    )
+
+    # Define the validation dataloader
+    val_dataloader = DataLoader(
+        validationset,
+        batch_size=opt.batch_size,
+        shuffle=False,
+        num_workers=opt.num_workers,
+        pin_memory=False,
     )
 
     # ----------------------------------------
@@ -144,8 +155,37 @@ def Trainer(opt):
             )
             prev_time = time.time()
 
-            running_loss += MaskL1Loss.item()
+            running_loss += float(MaskL1Loss.item())
 
+        # run validation after training epoch
+        val_running_loss = 0
+        for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
+            val_dataloader
+        ):
+            # Load and put to cuda
+            grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
+            mask = mask.cuda()  # out: [B, 1, 256, 256]
+
+            # forward propagation
+            out = generator(grayscale, mask)  # out: [B, 1, 256, 256]
+            if groundtruth is None:
+                out_wholeimg = grayscale * (1 - mask) + out * mask  # in range [0, 1]
+
+                # Mask L1 Loss
+                MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
+            else:
+                output_mask = output_mask.cuda()
+                groundtruth = groundtruth.cuda()
+                out_wholeimg = out * output_mask  # in range [0, 1]
+                groundtruth = groundtruth * output_mask
+
+                # Mask L1 Loss
+                MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
+
+            # Compute losses
+            val_running_loss += float(MaskL1Loss.item())
+
+            # save images
             if batch_idx == 0:
                 utils.sample_batch(
                     grayscale, mask, out_wholeimg, groundtruth, opt.sample_path, epoch
@@ -153,11 +193,12 @@ def Trainer(opt):
 
         # Print log
         print(
-            "\r[Epoch %d/%d] [Mask L1 Loss: %.5f] time_left: %s"
+            "\r[Epoch %d/%d] [Mask L1 Loss: %.5f] [Val Loss: %.5f] [time_left: %s"
             % (
                 (epoch + 1),
                 opt.epochs,
                 running_loss / len(dataloader),
+                val_running_loss / len(val_dataloader),
                 time_left,
             )
         )

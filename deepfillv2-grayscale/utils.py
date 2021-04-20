@@ -198,9 +198,9 @@ def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
             vmax=0.3,
             cmap="rainbow",
         )
+        plt.title("mae")
         cbaxes = inset_axes(ax, width="3%", height="30%", loc=3)
         plt.colorbar(im, cax=cbaxes)
-        plt.title("mae")
         plt.savefig(imgname, dpi=300)
 
 

@@ -21,6 +21,18 @@ if __name__ == "__main__":
         help="training samples path that is a folder",
     )
     parser.add_argument(
+        "--train_test_split",
+        type=float,
+        default=0.9,
+        help="split fraction between training and test dataset",
+    )
+    parser.add_argument(
+        "--train_val_split",
+        type=float,
+        default=0.9,
+        help="split fraction between training and validation dataset",
+    )
+    parser.add_argument(
         "--multi_gpu", type=bool, default=True, help="nn.Parallel needs or not"
     )
     parser.add_argument(

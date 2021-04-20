@@ -74,10 +74,28 @@ class DomainTransferDataset(Dataset):
 
 
 class InpaintDataset(Dataset):
-    def __init__(self, opt):
+    def __init__(self, opt, validation=False, test=False):
         assert opt.mask_type in ALLMASKTYPES
         self.opt = opt
-        self.imglist = utils.get_jpgs(opt.baseroot)
+        self.validation = validation
+        self.test = test
+
+        list_IDs = utils.get_jpgs(opt.baseroot)
+        n_split = int(self.opt.train_test_split * len(list_IDs))
+        list_IDs_train = list_IDs[:n_split]
+        train_idxs = np.arange(len(list_IDs_train))
+        np.random.shuffle(train_idxs)
+        n_train_no_val = int(self.opt.train_val_split * len(list_IDs_train))
+        list_IDs_val = [list_IDs_train[idx] for idx in train_idxs[n_train_no_val:]]
+        list_IDs_train = [list_IDs_train[idx] for idx in train_idxs[:n_train_no_val]]
+        list_IDs_test = list_IDs[n_split:]
+
+        if self.validation:
+            self.imglist = list_IDs_val
+        elif self.test:
+            self.imglist = list_IDs_test
+        else:
+            self.imglist = list_IDs_train
 
     def __len__(self):
         return len(self.imglist)
