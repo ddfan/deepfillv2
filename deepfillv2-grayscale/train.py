@@ -33,6 +33,12 @@ if __name__ == "__main__":
         help="split fraction between training and validation dataset",
     )
     parser.add_argument(
+        "--save_n_images",
+        type=int,
+        default=16,
+        help="interval between model checkpoints",
+    )
+    parser.add_argument(
         "--multi_gpu", type=bool, default=True, help="nn.Parallel needs or not"
     )
     parser.add_argument(

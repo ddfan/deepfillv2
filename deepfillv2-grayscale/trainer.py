@@ -13,6 +13,7 @@ import network
 import dataset
 import utils
 from tqdm import tqdm
+import sys
 
 
 def Trainer(opt):
@@ -74,11 +75,11 @@ def Trainer(opt):
         if opt.multi_gpu == True:
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.module.state_dict(), model_path)
-                print("The trained model is successfully saved at epoch %d" % (epoch))
+                # print("The trained model is successfully saved at epoch %d" % (epoch))
         else:
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.state_dict(), model_path)
-                print("The trained model is successfully saved at epoch %d" % (epoch))
+                # print("The trained model is successfully saved at epoch %d" % (epoch))
 
     # ----------------------------------------
     #       Initialize training dataset
@@ -118,8 +119,9 @@ def Trainer(opt):
     # Training loop
     for epoch in range(opt.epochs):
         running_loss = 0
+        tqdm_loader = tqdm(dataloader, file=sys.stdout)
         for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
-            tqdm(dataloader)
+            tqdm_loader
         ):
             # Load and put to cuda
             grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
@@ -186,9 +188,16 @@ def Trainer(opt):
             val_running_loss += float(MaskL1Loss.item())
 
             # save images
-            if batch_idx == 0:
+            if batch_idx < opt.save_n_images / opt.batch_size:
                 utils.sample_batch(
-                    grayscale, mask, out_wholeimg, groundtruth, opt.sample_path, epoch
+                    grayscale,
+                    mask,
+                    out_wholeimg,
+                    groundtruth,
+                    opt.sample_path,
+                    epoch,
+                    batch_idx,
+                    opt.batch_size,
                 )
 
         # Print log
@@ -285,11 +294,11 @@ def Trainer_GAN(opt):
         if opt.multi_gpu == True:
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.module.state_dict(), model_path)
-                print("The trained model is successfully saved at epoch %d" % (epoch))
+                # print("The trained model is successfully saved at epoch %d" % (epoch))
         else:
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.state_dict(), model_path)
-                print("The trained model is successfully saved at epoch %d" % (epoch))
+                # print("The trained model is successfully saved at epoch %d" % (epoch))
 
     # ----------------------------------------
     #       Initialize training dataset

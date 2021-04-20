@@ -159,7 +159,9 @@ def sample(grayscale, mask, out, save_folder, epoch):
     cv2.imwrite(imgname, img)
 
 
-def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
+def sample_batch(
+    grayscale, mask, out, groundtruth, save_folder, epoch, batch_idx, batch_size
+):
     # to cpu
     grayscale = grayscale.data.cpu().numpy()  # 256 * 256 * 1
     mask = mask.data.cpu().numpy()
@@ -174,7 +176,7 @@ def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
             "img_epoch_"
             + "{:03d}".format(epoch)
             + "_id_"
-            + "{:03d}".format(i)
+            + "{:03d}".format(batch_idx * batch_size + i)
             + ".png",
         )
         plt.figure(figsize=(5, 5))

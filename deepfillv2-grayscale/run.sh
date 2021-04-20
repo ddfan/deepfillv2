@@ -1,5 +1,6 @@
 #!/bin/bash
-HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
+# HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
+HOME_DIR="/home/david/Documents/bag_files/spot1_2021-03-19-18-29-00_subway_t8_game"
 python train.py \
 --baseroot "$HOME_DIR/dataset" \
 --save_path "$HOME_DIR/models" \
