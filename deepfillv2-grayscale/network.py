@@ -211,7 +211,7 @@ class GrayInpaintingNet(nn.Module):
             1,
             3,
             pad_type=opt.pad,
-            activation="sigmoid",
+            activation="none",
             norm="none",
         )
 

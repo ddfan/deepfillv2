@@ -30,4 +30,4 @@ python train.py \
 --max_angle 4 \
 --max_len 80 \
 --max_width 20 \
-# --finetune_path './models/GrayInpainting_epoch10_batchsize16.pth' \
+# --finetune_path '$HOME_DIR/models/GrayInpainting_epoch31_batchsize4.pth' \
