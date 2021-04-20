@@ -12,6 +12,7 @@ import itertools
 import network
 import dataset
 import utils
+from tqdm import tqdm
 
 
 def Trainer(opt):
@@ -107,9 +108,8 @@ def Trainer(opt):
     for epoch in range(opt.epochs):
         running_loss = 0
         for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
-            dataloader
+            tqdm(dataloader)
         ):
-
             # Load and put to cuda
             grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
             mask = mask.cuda()  # out: [B, 1, 256, 256]

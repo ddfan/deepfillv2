@@ -97,14 +97,14 @@ class InpaintDataset(Dataset):
             valid_input = np.isfinite(grayscale).astype(np.float32)
             mask = (1.0 - valid_input).astype(np.float32)
 
+            # normalize (crappy... need to improve this)
+            min_input_val = min(np.nanmin(grayscale), np.nanmin(groundtruth))
+            grayscale = (grayscale - min_input_val) / 4.0
+            groundtruth = (groundtruth - min_input_val) / 4.0
+
             # set invalid pixels to 0
             grayscale = np.nan_to_num(grayscale)
             groundtruth = np.nan_to_num(groundtruth)
-
-            # normalize (crappy... need to improve this)
-            min_input_val = np.min(grayscale)
-            grayscale = (grayscale - min_input_val) / 4.0
-            groundtruth = (groundtruth - min_input_val) / 4.0
 
             # TODO: normalize inputs, between [0,1]
             # TODO: do flip/shift data augmentation, scale, etc.
@@ -114,15 +114,15 @@ class InpaintDataset(Dataset):
             # plt.subplot(221)
             # plt.imshow(grayscale)
             # plt.title("elevation_raw")
-            # plt.colorbar()
+            # # plt.colorbar()
             # plt.subplot(222)
             # plt.imshow(mask)
             # plt.title("mask")
-            # plt.colorbar()
+            # # plt.colorbar()
             # plt.subplot(223)
             # plt.imshow(groundtruth)
             # plt.title("ground_truth")
-            # plt.colorbar()
+            # # plt.colorbar()
             # plt.subplot(224)
             # plt.imshow(np.abs(groundtruth - grayscale))
             # plt.title("mae")

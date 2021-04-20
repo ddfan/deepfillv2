@@ -9,7 +9,11 @@ import network
 import dataset
 
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+plt.style.use("seaborn-paper")
+rcParams["figure.autolayout"] = True
 
 # ----------------------------------------
 #                 Network
@@ -162,7 +166,8 @@ def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
     out = out.data.cpu().numpy()
     groundtruth = groundtruth.data.cpu().numpy()
 
-    # save
+    # save image
+
     for i in range(grayscale.shape[0]):
         imgname = os.path.join(
             save_folder,
@@ -172,23 +177,30 @@ def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
             + "{:03d}".format(i)
             + ".png",
         )
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(5, 5))
         plt.subplot(221)
-        plt.imshow(grayscale[i, 0, ...])
+        plt.imshow(grayscale[i, 0, ...], vmin=0, vmax=1.0)
         plt.title("elevation_raw")
-        plt.colorbar()
+        # plt.colorbar()
         plt.subplot(222)
-        plt.imshow(groundtruth[i, 0, ...])
+        plt.imshow(groundtruth[i, 0, ...], vmin=0, vmax=1.0)
         plt.title("ground_truth")
-        plt.colorbar()
+        # plt.colorbar()
         plt.subplot(223)
-        plt.imshow(out[i, 0, ...])
+        plt.imshow(out[i, 0, ...], vmin=0, vmax=1.0)
         plt.title("predict")
-        plt.colorbar()
+        # plt.colorbar()
         plt.subplot(224)
-        plt.imshow(np.abs(groundtruth[i, 0, ...] - out[i, 0, ...]))
+        ax = plt.gca()
+        im = ax.imshow(
+            np.abs(groundtruth[i, 0, ...] - out[i, 0, ...]),
+            vmin=0,
+            vmax=0.3,
+            cmap="rainbow",
+        )
+        cbaxes = inset_axes(ax, width="3%", height="30%", loc=3)
+        plt.colorbar(im, cax=cbaxes)
         plt.title("mae")
-        plt.colorbar()
         plt.savefig(imgname, dpi=300)
 
 
