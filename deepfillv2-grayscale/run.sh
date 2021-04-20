@@ -1,9 +1,12 @@
+#!/bin/bash
+HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
 python train.py \
---baseroot '/mnt/lustre/zhaoyuzhi/dataset/ILSVRC2012_train_256' \
+--baseroot "$HOME_DIR/dataset" \
+--save_path "$HOME_DIR/models" \
+--sample_path "$HOME_DIR/dataset" \
 --pre_train True \
 --multi_gpu True \
 --checkpoint_interval 5 \
---finetune_path './models/GrayInpainting_epoch10_batchsize16.pth' \
 --multi_gpu True \
 --epochs 31 \
 --batch_size 8 \
@@ -22,3 +25,4 @@ python train.py \
 --max_angle 4 \
 --max_len 40 \
 --max_width 2 \
+# --finetune_path './models/GrayInpainting_epoch10_batchsize16.pth' \

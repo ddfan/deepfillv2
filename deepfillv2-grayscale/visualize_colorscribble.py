@@ -4,8 +4,8 @@ import cv2
 # color scribble
 
 if __name__ == "__main__":
-    
-    def color_scribble(img, color_point = 30, color_width = 5):
+
+    def color_scribble(img, color_point=30, color_width=5):
         height = img.shape[0]
         width = img.shape[1]
         channels = img.shape[2]
@@ -30,16 +30,16 @@ if __name__ == "__main__":
             scribble[min_h:max_h, min_w:max_w, :] = img[rand_h, rand_w, :]
 
         return scribble
-    
-    def blurish(img, color_blur_width = 11):
+
+    def blurish(img, color_blur_width=11):
         img = cv2.GaussianBlur(img, (color_blur_width, color_blur_width), 0)
         return img
-    
-    img = cv2.imread('example.JPEG')
+
+    img = cv2.imread("example.JPEG")
     scribble = color_scribble(img)
     scribble = blurish(scribble)
 
-    show = np.concatenate((img, scribble), axis = 1)
-    #show = cv2.resize(show, (show.shape[1] // 2, show.shape[0] // 2))
-    cv2.imshow('scribble', show)
+    show = np.concatenate((img, scribble), axis=1)
+    # show = cv2.resize(show, (show.shape[1] // 2, show.shape[0] // 2))
+    cv2.imshow("scribble", show)
     cv2.waitKey(0)
