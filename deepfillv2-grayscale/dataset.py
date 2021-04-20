@@ -139,7 +139,7 @@ class InpaintDataset(Dataset):
             valid_ground_truth = np.isfinite(groundtruth)
             valid_input = np.isfinite(grayscale)
             if self.validation:  # generate mask from known mask
-                mask = data["known"]
+                mask = data["known"] * (1.0 - valid_input)
             else:  # generate mask from groundtruth, with random variation
                 random_mask = self.random_ff_mask(
                     shape=self.opt.imgsize,
