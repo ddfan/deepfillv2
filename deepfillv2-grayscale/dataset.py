@@ -85,18 +85,25 @@ class InpaintDataset(Dataset):
     def __getitem__(self, index):
         if self.opt.mask_type == "known":
             datafilename = self.imglist[index]
-            datafilepath = os.path.join(self.opt.baseroot, datafilename)  
+            datafilepath = os.path.join(self.opt.baseroot, datafilename)
             data = np.load(datafilepath)
 
             grayscale = data["elevation_raw"].astype(np.float32)
             groundtruth = data["elevation_ground_truth"].astype(np.float32)
-
-            # mask = data["known"]
+            # mask = data["known"].astype(np.float32)
 
             # generate mask from groundtruth:
             valid_ground_truth = np.isfinite(groundtruth).astype(np.float32)
             valid_input = np.isfinite(grayscale).astype(np.float32)
-            mask = valid_ground_truth * (1.0 - valid_input)
+            mask = (1.0 - valid_input).astype(np.float32)
+
+            # set invalid pixels to 0
+            grayscale = np.nan_to_num(grayscale)
+            groundtruth = np.nan_to_num(groundtruth)
+
+            # TODO: normalize inputs, between [0,1]
+            # TODO: do flip/shift data augmentation
+            # TODO: add random maskings
 
             # import matplotlib.pyplot as plt
             # plt.subplot(221)
@@ -118,15 +125,13 @@ class InpaintDataset(Dataset):
             # plt.show()
             # quit()
 
-            # TODO: normalize inputs
-            # TODO:  do flip/shift data augmentation
-
             grayscale = torch.from_numpy(grayscale).unsqueeze(0).contiguous()
             mask = torch.from_numpy(mask).unsqueeze(0).contiguous()
             groundtruth = torch.from_numpy(groundtruth).unsqueeze(0).contiguous()
+            output_mask = torch.from_numpy(valid_ground_truth).unsqueeze(0).contiguous()
 
             # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
-            return grayscale, mask, groundtruth
+            return grayscale, mask, groundtruth, output_mask
         else:
             # image read
             imgname = self.imglist[index]  # name of one image
