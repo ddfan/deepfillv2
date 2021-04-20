@@ -181,15 +181,15 @@ def sample_batch(
         )
         plt.figure(figsize=(5, 5))
         plt.subplot(221)
-        plt.imshow(grayscale[i, 0, ...], vmin=0, vmax=1.0)
+        plt.imshow(grayscale[i, 0, ...], vmin=-1.0, vmax=1.0)
         plt.title("elevation_raw")
         # plt.colorbar()
         plt.subplot(222)
-        plt.imshow(groundtruth[i, 0, ...], vmin=0, vmax=1.0)
+        plt.imshow(groundtruth[i, 0, ...], vmin=-1.0, vmax=1.0)
         plt.title("ground_truth")
         # plt.colorbar()
         plt.subplot(223)
-        plt.imshow(out[i, 0, ...], vmin=0, vmax=1.0)
+        plt.imshow(out[i, 0, ...], vmin=-1.0, vmax=1.0)
         plt.title("predict")
         # plt.colorbar()
         plt.subplot(224)
@@ -197,7 +197,7 @@ def sample_batch(
         im = ax.imshow(
             np.abs(groundtruth[i, 0, ...] - out[i, 0, ...]),
             vmin=0,
-            vmax=0.3,
+            vmax=0.5,
             cmap="rainbow",
         )
         plt.title("mae")
