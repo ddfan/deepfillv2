@@ -8,6 +8,9 @@ import torchvision as tv
 import network
 import dataset
 
+import matplotlib.pyplot as plt
+
+
 # ----------------------------------------
 #                 Network
 # ----------------------------------------
@@ -150,6 +153,43 @@ def sample(grayscale, mask, out, save_folder, epoch):
     img = np.concatenate((grayscale, mask, masked_img, out), axis=1)
     imgname = os.path.join(save_folder, str(epoch) + ".png")
     cv2.imwrite(imgname, img)
+
+
+def sample_batch(grayscale, mask, out, groundtruth, save_folder, epoch):
+    # to cpu
+    grayscale = grayscale.data.cpu().numpy()  # 256 * 256 * 1
+    mask = mask.data.cpu().numpy()
+    out = out.data.cpu().numpy()
+    groundtruth = groundtruth.data.cpu().numpy()
+
+    # save
+    for i in range(grayscale.shape[0]):
+        imgname = os.path.join(
+            save_folder,
+            "img_epoch_"
+            + "{:03d}".format(epoch)
+            + "_id_"
+            + "{:03d}".format(i)
+            + ".png",
+        )
+        plt.figure(figsize=(10, 10))
+        plt.subplot(221)
+        plt.imshow(grayscale[i, 0, ...])
+        plt.title("elevation_raw")
+        plt.colorbar()
+        plt.subplot(222)
+        plt.imshow(groundtruth[i, 0, ...])
+        plt.title("ground_truth")
+        plt.colorbar()
+        plt.subplot(223)
+        plt.imshow(out[i, 0, ...])
+        plt.title("predict")
+        plt.colorbar()
+        plt.subplot(224)
+        plt.imshow(np.abs(groundtruth[i, 0, ...] - out[i, 0, ...]))
+        plt.title("mae")
+        plt.colorbar()
+        plt.savefig(imgname, dpi=300)
 
 
 def psnr(pred, target, pixel_max_cnt=255):

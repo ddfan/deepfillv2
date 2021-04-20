@@ -101,8 +101,13 @@ class InpaintDataset(Dataset):
             grayscale = np.nan_to_num(grayscale)
             groundtruth = np.nan_to_num(groundtruth)
 
+            # normalize (crappy... need to improve this)
+            min_input_val = np.min(grayscale)
+            grayscale = (grayscale - min_input_val) / 4.0
+            groundtruth = (groundtruth - min_input_val) / 4.0
+
             # TODO: normalize inputs, between [0,1]
-            # TODO: do flip/shift data augmentation
+            # TODO: do flip/shift data augmentation, scale, etc.
             # TODO: add random maskings
 
             # import matplotlib.pyplot as plt

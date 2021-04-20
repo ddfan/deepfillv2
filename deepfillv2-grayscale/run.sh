@@ -3,12 +3,12 @@ HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_da
 python train.py \
 --baseroot "$HOME_DIR/dataset" \
 --save_path "$HOME_DIR/models" \
---sample_path "$HOME_DIR/dataset" \
+--sample_path "$HOME_DIR/sample_imgs" \
 --pre_train True \
---checkpoint_interval 5 \
+--checkpoint_interval 1 \
 --multi_gpu False \
 --gpu_ids "0" \
---epochs 31 \
+--epochs 100 \
 --batch_size 8 \
 --latent_channels 16 \
 --lr_g 1e-4 \

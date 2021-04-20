@@ -105,6 +105,7 @@ def Trainer(opt):
 
     # Training loop
     for epoch in range(opt.epochs):
+        running_loss = 0
         for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
             dataloader
         ):
@@ -143,25 +144,30 @@ def Trainer(opt):
             )
             prev_time = time.time()
 
-            # Print log
-            print(
-                "\r[Epoch %d/%d] [Batch %d/%d] [Mask L1 Loss: %.5f] time_left: %s"
-                % (
-                    (epoch + 1),
-                    opt.epochs,
-                    batch_idx,
-                    len(dataloader),
-                    MaskL1Loss.item(),
-                    time_left,
+            running_loss += MaskL1Loss.item()
+
+            if batch_idx == 0:
+                utils.sample_batch(
+                    grayscale, mask, out_wholeimg, groundtruth, opt.sample_path, epoch
                 )
+
+        # Print log
+        print(
+            "\r[Epoch %d/%d] [Mask L1 Loss: %.5f] time_left: %s"
+            % (
+                (epoch + 1),
+                opt.epochs,
+                running_loss / len(dataloader),
+                time_left,
             )
+        )
 
         # Learning rate decrease
         adjust_learning_rate(optimizer_g, (epoch + 1), opt, opt.lr_g)
 
         # Save the model
         save_model(generator, (epoch + 1), opt)
-        utils.sample(grayscale, mask, out_wholeimg, opt.sample_path, (epoch + 1))
+        # utils.sample(grayscale, mask, out_wholeimg, opt.sample_path, (epoch + 1))
 
 
 def Trainer_GAN(opt):
