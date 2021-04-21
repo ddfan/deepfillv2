@@ -1,8 +1,8 @@
 #!/bin/bash
-HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
+HOME_DIR="/media/nico/46B8200EB81FFB5F/workspace/deepfillv2"
 # HOME_DIR="/home/david/Documents/bag_files/spot1_2021-03-19-18-29-00_subway_t8_game"
 python train.py \
---baseroot "$HOME_DIR/dataset" \
+--baseroot "$HOME_DIR" \
 --save_path "$HOME_DIR/models" \
 --sample_path "$HOME_DIR/sample_imgs" \
 --pre_train True \
@@ -11,7 +11,7 @@ python train.py \
 --multi_gpu False \
 --gpu_ids "0" \
 --epochs 100 \
---batch_size 4 \
+--batch_size 3 \
 --train_test_split 0.9 \
 --train_val_split 0.9 \
 --latent_channels 16 \

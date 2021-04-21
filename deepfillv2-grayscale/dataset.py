@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import cv2
 from PIL import Image
+import h5py
 
 import utils
 
@@ -80,7 +81,11 @@ class InpaintDataset(Dataset):
         self.validation = validation
         self.test = test
 
-        list_IDs = utils.get_jpgs(opt.baseroot)
+        hf = h5py.File(os.path.join(opt.baseroot, 'data.h5'), 'r')
+        list_IDs = list(hf['lidar']['lidar_idx'])
+        hf.close()
+
+        # list_IDs = utils.get_jpgs(opt.baseroot)
         n_split = int(self.opt.train_test_split * len(list_IDs))
         list_IDs_train = list_IDs[:n_split]
         train_idxs = np.arange(len(list_IDs_train))
@@ -102,9 +107,20 @@ class InpaintDataset(Dataset):
 
     def __getitem__(self, index):
         if self.opt.mask_type == "known":
-            datafilename = self.imglist[index]
-            datafilepath = os.path.join(self.opt.baseroot, datafilename)
-            data = np.load(datafilepath)
+            hf = h5py.File(os.path.join(self.opt.baseroot, 'data.h5'), 'r')
+            lidar_data = hf['lidar']['lidar']
+            image_data = hf['image']['image']
+            lidar_idx = list(hf['lidar']['lidar_idx'])
+            hf.close()
+            lidar_idx = lidar_idx[index]
+            lidar_data = lidar_data[lidar_idx, :]
+            image_data = image_data[lidar_idx, :]
+
+            lidar_data = np.reshape(lidar_data, (lidar_idx, 3, -1))
+
+            # datafilename = self.imglist[index]
+            # datafilepath = os.path.join(self.opt.baseroot, datafilename)
+            # data = np.load(datafilepath)
 
             grayscale = data["elevation_raw"]
             groundtruth = data["elevation_ground_truth"]
