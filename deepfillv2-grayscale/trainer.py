@@ -67,11 +67,8 @@ def Trainer(opt):
     # Save the model if pre_train == True
     def save_model(net, epoch, opt):
         """Save the model at "checkpoint_interval" and its multiple"""
-        model_name = "GrayInpainting_epoch%d_batchsize%d.pth" % (
-            epoch + 20,
-            opt.batch_size,
-        )
-        model_path = os.path.join(opt.save_path, model_name)
+        model_name = "model_" + "{:03d}".format(epoch)
+        model_path = os.path.join(opt.save_path, model_name + ".pth")
         if opt.multi_gpu == True:
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.module.state_dict(), model_path)
@@ -82,15 +79,12 @@ def Trainer(opt):
                 # print("The trained model is successfully saved at epoch %d" % (epoch))
 
         # convert the student network to a TorchScript file for inferencing in C++
-        c_model_name = "GrayInpainting_epoch%d_batchsize%d.pt" % (
-            epoch,
-            opt.batch_size,
-        )
-        model_path = os.path.join(opt.save_path, c_model_name)
-
+        model_path = os.path.join(opt.save_path, model_name + ".pt")
         net_tmp = utils.create_generator(opt)
         net_tmp.load_state_dict(
-            torch.load(os.path.join(opt.save_path, model_name), map_location="cpu")
+            torch.load(
+                os.path.join(opt.save_path, model_name + ".pth"), map_location="cpu"
+            )
         )
         example = torch.ones((1, 1, opt.imgsize, opt.imgsize))
         torchscript_module = torch.jit.trace(net_tmp.eval(), (example, example))

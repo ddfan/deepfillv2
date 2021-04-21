@@ -21,17 +21,17 @@ rcParams["figure.autolayout"] = True
 def create_generator(opt):
     # Initialize the networks
     generator = network.GrayInpaintingNet(opt)
-    print("Generator is created!")
+    # print("Generator is created!")
     # Init the networks
     if opt.finetune_path:
         pretrained_net = torch.load(opt.finetune_path)
         generator = load_dict(generator, pretrained_net)
-        print("Load generator with %s" % opt.finetune_path)
+        # print("Load generator with %s" % opt.finetune_path)
     else:
         network.weights_init(
             generator, init_type=opt.init_type, init_gain=opt.init_gain
         )
-        print("Initialize generator with %s type" % opt.init_type)
+        # print("Initialize generator with %s type" % opt.init_type)
     return generator
 
 
