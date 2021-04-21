@@ -65,7 +65,7 @@ def Trainer(opt):
             param_group["lr"] = lr
 
     # Save the model if pre_train == True
-    def save_model(net, epoch, opt):
+    def save_model(net, epoch, opt, dummy_input, dummy_mask):
         """Save the model at "checkpoint_interval" and its multiple"""
         model_name = "GrayInpainting_epoch%d_batchsize%d.pth" % (
             epoch + 20,
@@ -80,6 +80,16 @@ def Trainer(opt):
             if epoch % opt.checkpoint_interval == 0:
                 torch.save(net.state_dict(), model_path)
                 # print("The trained model is successfully saved at epoch %d" % (epoch))
+
+        # convert the student network to a TorchScript file for inferencing in C++
+        c_model_name = "GrayInpainting_GAN_epoch%d_batchsize%d.pt" % (
+            epoch,
+            opt.batch_size,
+        )
+        model_path = os.path.join(opt.save_path, c_model_name)
+        torchscript_module = torch.jit.trace(net.eval().to('cuda'), (dummy_input, dummy_mask))
+        print(torchscript_module.code)
+        torch.jit.save(torchscript_module, model_path)
 
     # ----------------------------------------
     #       Initialize training dataset
@@ -217,7 +227,7 @@ def Trainer(opt):
         adjust_learning_rate(optimizer_g, (epoch + 1), opt, opt.lr_g)
 
         # Save the model
-        save_model(generator, (epoch + 1), opt)
+        save_model(generator, (epoch + 1), opt, grayscale, mask)
         # utils.sample(grayscale, mask, out_wholeimg, opt.sample_path, (epoch + 1))
 
 
