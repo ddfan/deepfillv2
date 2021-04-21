@@ -12,7 +12,7 @@ python train.py \
 --gpu_ids "0" \
 --epochs 100 \
 --batch_size 4 \
---train_test_split 0.9 \
+--train_test_split 1.0 \
 --train_val_split 0.9 \
 --latent_channels 16 \
 --scale_input 2.0 \
@@ -30,5 +30,5 @@ python train.py \
 --bbox_shape 30 \
 --max_angle 4 \
 --max_len 80 \
---max_width 20 \
+--max_width 5 \
 # --finetune_path "$HOME_DIR/models/GrayInpainting_epoch26_batchsize4.pth" \

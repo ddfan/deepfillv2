@@ -189,7 +189,7 @@ def Trainer(opt):
             else:
                 output_mask = output_mask.cuda()
                 groundtruth = groundtruth.cuda()
-                out_wholeimg = out * output_mask  # in range [0, 1]
+                out_wholeimg = (grayscale * (1 - mask) + out * mask) * output_mask
                 groundtruth = groundtruth * output_mask
 
                 # Mask L1 Loss
