@@ -12,7 +12,7 @@ python train.py \
 --gpu_ids "0" \
 --epochs 100 \
 --batch_size 4 \
---train_test_split 0.01 \
+--train_test_split 0.9 \
 --train_val_split 0.9 \
 --latent_channels 16 \
 --lr_g 1e-4 \
