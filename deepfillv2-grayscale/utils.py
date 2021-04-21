@@ -213,6 +213,7 @@ def sample_batch(grayscale, mask, out, groundtruth, opt, epoch, batch_idx):
         cbaxes = inset_axes(ax, width="3%", height="30%", loc=3)
         plt.colorbar(im, cax=cbaxes)
         plt.savefig(imgname, dpi=300)
+        plt.close()
 
 
 def psnr(pred, target, pixel_max_cnt=255):
