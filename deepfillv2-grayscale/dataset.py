@@ -148,13 +148,7 @@ class InpaintDataset(Dataset):
                     max_width=self.opt.max_width,
                     times=self.opt.mask_num,
                 )[0, ...]
-                # mask = (1.0 - valid_input).astype(np.float32)
-                mask = valid_ground_truth * random_mask
-
-            # normalize
-            input_mean = np.nanmean(grayscale)
-            grayscale = (grayscale - input_mean) / 2.0
-            groundtruth = (groundtruth - input_mean) / 2.0
+                mask = (1.0 - valid_input) * random_mask * valid_ground_truth
 
             # set invalid pixels to 0
             grayscale = np.nan_to_num(grayscale)
