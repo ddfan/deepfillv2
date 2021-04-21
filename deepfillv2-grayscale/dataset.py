@@ -182,22 +182,21 @@ class InpaintDataset(Dataset):
                 plt.show()
                 quit()
 
-            grayscale = (
-                torch.from_numpy(grayscale.astype(np.float32)).unsqueeze(0).contiguous()
-            )
-            mask = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0).contiguous()
-            groundtruth = (
-                torch.from_numpy(groundtruth.astype(np.float32))
-                .unsqueeze(0)
-                .contiguous()
-            )
-            output_mask = (
-                torch.from_numpy(valid_ground_truth.astype(np.float32))
-                .unsqueeze(0)
-                .contiguous()
-            )
+            grayscale = torch.from_numpy(grayscale.astype(np.float32)).contiguous()
+            mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
+            groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
+            output_mask = torch.from_numpy(
+                valid_ground_truth.astype(np.float32)
+            ).contiguous()
 
             # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
+
+            # flatten data for libtorch compatability
+            grayscale = torch.flatten(grayscale, start_dim=0)
+            mask = torch.flatten(mask, start_dim=0)
+            groundtruth = torch.flatten(groundtruth, start_dim=0)
+            output_mask = torch.flatten(output_mask, start_dim=0)
+
             return grayscale, mask, groundtruth, output_mask
         else:
             # image read

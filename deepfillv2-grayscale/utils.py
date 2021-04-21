@@ -159,9 +159,14 @@ def sample(grayscale, mask, out, save_folder, epoch):
     cv2.imwrite(imgname, img)
 
 
-def sample_batch(
-    grayscale, mask, out, groundtruth, save_folder, epoch, batch_idx, batch_size
-):
+def sample_batch(grayscale, mask, out, groundtruth, opt, epoch, batch_idx):
+
+    # reshape into images
+    grayscale = torch.reshape(grayscale, (-1, 1, opt.imgsize, opt.imgsize))
+    mask = torch.reshape(mask, (-1, 1, opt.imgsize, opt.imgsize))
+    out = torch.reshape(out, (-1, 1, opt.imgsize, opt.imgsize))
+    groundtruth = torch.reshape(groundtruth, (-1, 1, opt.imgsize, opt.imgsize))
+
     # to cpu
     grayscale = grayscale.data.cpu().numpy()  # 256 * 256 * 1
     mask = mask.data.cpu().numpy()
@@ -172,11 +177,11 @@ def sample_batch(
 
     for i in range(grayscale.shape[0]):
         imgname = os.path.join(
-            save_folder,
+            opt.sample_path,
             "img_epoch_"
             + "{:03d}".format(epoch)
             + "_id_"
-            + "{:03d}".format(batch_idx * batch_size + i)
+            + "{:03d}".format(batch_idx * opt.batch_size + i)
             + ".png",
         )
         max_val = 2.0 * max(

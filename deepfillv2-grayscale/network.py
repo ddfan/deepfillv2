@@ -47,6 +47,8 @@ def weights_init(net, init_type="kaiming", init_gain=0.02):
 class GrayInpaintingNet(nn.Module):
     def __init__(self, opt):
         super(GrayInpaintingNet, self).__init__()
+        self.opt = opt
+
         # Downsampling
         self.down1 = GatedConv2d(
             opt.in_channels + opt.mask_channels,
@@ -216,6 +218,15 @@ class GrayInpaintingNet(nn.Module):
         )
 
     def forward(self, img, mask):
+        # for compatibility with libtorch, we assume img and mask are 1d arrays
+        # reshape into batch * 1 * opt.imgsize * opt.imgsize
+        img = torch.reshape(img, (-1, 1, self.opt.imgsize, self.opt.imgsize))
+        mask = torch.reshape(mask, (-1, 1, self.opt.imgsize, self.opt.imgsize))
+
+        # normalize
+        img_mean = torch.mean(img, (1, 2, 3), keepdims=True)
+        img = (img - img_mean) / self.opt.scale_input
+
         # img: entire img
         # mask: 1 for mask region; 0 for unmask region
         # 1 - mask: unmask
@@ -239,7 +250,12 @@ class GrayInpaintingNet(nn.Module):
         out = self.up2(out)  # out: batch * 128 * 128 * 128
         out = self.up3(out)  # out: batch * 64 * 256 * 256
         out = self.up4(out)  # out: batch * 3 * 256 * 256
-        # final output
+
+        # renormalize output
+        out = out * self.opt.scale_input + img_mean
+        # final output, reshape into 1d array
+        out = torch.reshape(out, (-1, self.opt.imgsize * self.opt.imgsize))
+
         return out
 
 

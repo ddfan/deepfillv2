@@ -39,6 +39,12 @@ if __name__ == "__main__":
         help="interval between model checkpoints",
     )
     parser.add_argument(
+        "--scale_input",
+        type=float,
+        default=2.0,
+        help="divide input by this factor for normalization purposes",
+    )
+    parser.add_argument(
         "--multi_gpu", type=bool, default=True, help="nn.Parallel needs or not"
     )
     parser.add_argument(

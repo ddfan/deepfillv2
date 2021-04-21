@@ -89,10 +89,11 @@ def Trainer(opt):
         model_path = os.path.join(opt.save_path, c_model_name)
 
         net_tmp = utils.create_generator(opt)
-        net_tmp.load_state_dict(torch.load(os.path.join(opt.save_path, model_name), map_location='cpu'))
+        net_tmp.load_state_dict(
+            torch.load(os.path.join(opt.save_path, model_name), map_location="cpu")
+        )
         example = torch.ones((1, 1, opt.imgsize, opt.imgsize))
         torchscript_module = torch.jit.trace(net_tmp.eval(), (example, example))
-        print(torchscript_module.code)
         torch.jit.save(torchscript_module, model_path)
 
     # ----------------------------------------
@@ -152,6 +153,7 @@ def Trainer(opt):
             else:
                 output_mask = output_mask.cuda()
                 groundtruth = groundtruth.cuda()
+
                 # out_wholeimg = out * output_mask  # in range [0, 1]
                 out_wholeimg = (grayscale * (1 - mask) + out * mask) * output_mask
                 groundtruth = groundtruth * output_mask
@@ -209,10 +211,9 @@ def Trainer(opt):
                     mask,
                     out_wholeimg,
                     groundtruth,
-                    opt.sample_path,
+                    opt,
                     epoch,
                     batch_idx,
-                    opt.batch_size,
                 )
 
         # Print log

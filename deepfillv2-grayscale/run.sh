@@ -15,6 +15,7 @@ python train.py \
 --train_test_split 0.9 \
 --train_val_split 0.9 \
 --latent_channels 16 \
+--scale_input 2.0 \
 --lr_g 1e-4 \
 --lambda_l1 1 \
 --lambda_perceptual 5 \
