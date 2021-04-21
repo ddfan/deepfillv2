@@ -14,7 +14,7 @@ import dataset
 import utils
 from tqdm import tqdm
 import sys
-
+import math
 
 def Trainer(opt):
     # ----------------------------------------
@@ -127,7 +127,7 @@ def Trainer(opt):
 
     # Training loop
     for epoch in range(opt.epochs):
-        running_loss = 0
+        running_loss = np.array([])
         tqdm_loader = tqdm(dataloader, file=sys.stdout)
         for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
             tqdm_loader
@@ -168,10 +168,12 @@ def Trainer(opt):
             )
             prev_time = time.time()
 
-            running_loss += float(MaskL1Loss.item())
+            loss = float(MaskL1Loss.item())
+            if not math.isnan(loss):
+                running_loss = np.append(running_loss, loss)
 
         # run validation after training epoch
-        val_running_loss = 0
+        val_running_loss = np.array([])
         for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
             val_dataloader
         ):
@@ -196,7 +198,9 @@ def Trainer(opt):
                 MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
 
             # Compute losses
-            val_running_loss += float(MaskL1Loss.item())
+            loss = float(MaskL1Loss.item())
+            if not math.isnan(loss):
+                val_running_loss = np.append(val_running_loss, loss)
 
             # save images
             if batch_idx < opt.save_n_images / opt.batch_size:
@@ -216,8 +220,8 @@ def Trainer(opt):
             % (
                 (epoch + 1),
                 opt.epochs,
-                running_loss / len(dataloader),
-                val_running_loss / len(val_dataloader),
+                np.mean(running_loss),
+                np.mean(val_running_loss),
                 time_left,
             )
         )
