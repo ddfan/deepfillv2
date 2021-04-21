@@ -82,14 +82,13 @@ def Trainer(opt):
                 # print("The trained model is successfully saved at epoch %d" % (epoch))
 
         # convert the student network to a TorchScript file for inferencing in C++
-        c_model_name = "GrayInpainting_GAN_epoch%d_batchsize%d.pt" % (
+        c_model_name = "GrayInpainting_epoch%d_batchsize%d.pt" % (
             epoch,
             opt.batch_size,
         )
-        example = torch.ones((1, 1, opt.imgsize, opt.imgsize))
         model_path = os.path.join(opt.save_path, c_model_name)
-        torchscript_module = torch.jit.trace(net.eval().to('cuda'), (example, example))
-        print(torchscript_module.code)
+        example = torch.ones((1, 1, opt.imgsize, opt.imgsize)).cuda()
+        torchscript_module = torch.jit.trace(net.module, (example, example))
         torch.jit.save(torchscript_module, model_path)
 
     # ----------------------------------------
