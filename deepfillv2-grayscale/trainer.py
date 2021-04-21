@@ -65,7 +65,7 @@ def Trainer(opt):
             param_group["lr"] = lr
 
     # Save the model if pre_train == True
-    def save_model(net, epoch, opt, dummy_input, dummy_mask):
+    def save_model(net, epoch, opt):
         """Save the model at "checkpoint_interval" and its multiple"""
         model_name = "GrayInpainting_epoch%d_batchsize%d.pth" % (
             epoch + 20,
@@ -86,8 +86,9 @@ def Trainer(opt):
             epoch,
             opt.batch_size,
         )
+        example = torch.ones((1, 1, opt.imgsize, opt.imgsize))
         model_path = os.path.join(opt.save_path, c_model_name)
-        torchscript_module = torch.jit.trace(net.eval().to('cuda'), (dummy_input, dummy_mask))
+        torchscript_module = torch.jit.trace(net.eval().to('cuda'), (example, example))
         print(torchscript_module.code)
         torch.jit.save(torchscript_module, model_path)
 
@@ -227,7 +228,7 @@ def Trainer(opt):
         adjust_learning_rate(optimizer_g, (epoch + 1), opt, opt.lr_g)
 
         # Save the model
-        save_model(generator, (epoch + 1), opt, grayscale, mask)
+        save_model(generator, (epoch + 1), opt)
         # utils.sample(grayscale, mask, out_wholeimg, opt.sample_path, (epoch + 1))
 
 
