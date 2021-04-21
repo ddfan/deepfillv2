@@ -87,7 +87,10 @@ def Trainer(opt):
             opt.batch_size,
         )
         model_path = os.path.join(opt.save_path, c_model_name)
-        torchscript_module = torch.jit.trace(net.eval().to('cuda'), (dummy_input, dummy_mask))
+
+        net_tmp = utils.create_generator(opt)
+        net_tmp.load_state_dict(torch.load(os.path.join(opt.save_path, model_name), map_location='cpu'))
+        torchscript_module = torch.jit.trace(net_tmp.eval(), (dummy_input.to('cpu'), dummy_mask.to('cpu')))
         print(torchscript_module.code)
         torch.jit.save(torchscript_module, model_path)
 
