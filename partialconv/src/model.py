@@ -64,7 +64,7 @@ class UpsampleConcat(nn.Module):
     def __init__(self):
         super().__init__()
         # Define the upsampling layer with nearest neighbor
-        self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
 
     def forward(self, dec_feature, enc_feature, dec_mask, enc_mask):
         # upsample and concat features
@@ -186,6 +186,8 @@ class PConvUNet(nn.Module):
                     feature, update_mask, enc_f.pop(), enc_m.pop())
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
+
+        feature = feature.abs()
 
         # flatten output
         feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))

@@ -25,7 +25,7 @@ train_val_split: 0.9
 mask_augment: False
 
 ### NETWORK SETTING ###
-in_channels: 10
+in_channels: 9
 out_channels: 1
 img_size: 400
 # UNet layer size
@@ -33,16 +33,16 @@ layer_size: 4
 
 ### LOSS PARAMETERS ###
 valid_coef: 1.0
-hole_coef: 6.0
-tv_coef: 0.1
-perc_coef: 0.05
-style_coef: 120.0
+hole_coef: 0.0
+tv_coef: 0.0
+perc_coef: 0.0
+style_coef: 0.0
 # total variation calcuration method (mean or sum)
 tv_loss: mean
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
-initial_lr: 0.0002
+initial_lr: 0.001
 finetune_lr: 0.0005
 momentum: 0
 weight_decay: 0
