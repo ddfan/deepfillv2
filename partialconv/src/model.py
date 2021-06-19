@@ -133,19 +133,19 @@ class PConvUNet(nn.Module):
         self.enc_7 = PConvActiv(512, 512, 'down-3')
         self.enc_8 = PConvActiv(512, 512, 'down-3')
 
-        self.dec_8 = PConvActiv(512+512, 512, dec=True, active='leaky')
-        self.dec_7 = PConvActiv(512+512, 512, dec=True, active='leaky')
-        self.dec_6 = PConvActiv(512+512, 512, dec=True, active='leaky')
-        self.dec_5 = PConvActiv(512+512, 512, dec=True, active='leaky')
-        self.dec_4 = PConvActiv(512+256, 256, dec=True, active='leaky')
-        self.dec_3 = PConvActiv(256+128, 128, dec=True, active='leaky')
-        self.dec_2 = PConvActiv(128+64,   64, dec=True, active='leaky')
-        self.dec_1 = PConvActiv(64+3,      3, dec=True, bn=False,
+        self.dec_8 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
+        self.dec_7 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
+        self.dec_6 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
+        self.dec_5 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
+        self.dec_4 = PConvActiv(512 + 256, 256, dec=True, active='leaky')
+        self.dec_3 = PConvActiv(256 + 128, 128, dec=True, active='leaky')
+        self.dec_2 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
+        self.dec_1 = PConvActiv(64 + 3, 3, dec=True, bn=False,
                                 active=None, conv_bias=True)
 
     def forward(self, img, mask):
         enc_f, enc_m = [img], [mask]
-        for layer_num in range(1, self.layer_size+1):
+        for layer_num in range(1, self.layer_size + 1):
             if layer_num == 1:
                 feature, update_mask = \
                     getattr(self, 'enc_{}'.format(layer_num))(img, mask)
@@ -158,7 +158,7 @@ class PConvUNet(nn.Module):
 
         assert len(enc_f) == self.layer_size
 
-        for layer_num in reversed(range(1, self.layer_size+1)):
+        for layer_num in reversed(range(1, self.layer_size + 1)):
             feature, update_mask = getattr(self, 'dec_{}'.format(layer_num))(
                     feature, update_mask, enc_f.pop(), enc_m.pop())
 
@@ -171,7 +171,7 @@ class PConvUNet(nn.Module):
         """
         super().train(mode)
         if not self.freeze_enc_bn:
-            return 
+            return
         for name, module in self.named_modules():
             if isinstance(module, nn.BatchNorm2d) and 'enc' in name:
                 module.eval()

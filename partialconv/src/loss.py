@@ -26,7 +26,7 @@ class InpaintingLoss(nn.Module):
             tv_loss = 0.0
 
         # Hole Pixel Loss
-        hole_loss = self.l1((1-mask) * output, (1-mask) * gt)
+        hole_loss = self.l1((1 - mask) * output, (1 - mask) * gt)
 
         # Valid Pixel Loss
         valid_loss = self.l1(mask * output, mask * gt)
@@ -73,13 +73,14 @@ class VGG16FeatureExtractor(nn.Module):
 
         # fix the encoder
         for i in range(3):
-            for param in getattr(self, 'enc_{}'.format(i+1)).parameters():
+            for param in getattr(self, 'enc_{}'.format(i + 1)).parameters():
                 param.requires_grad = False
 
     def forward(self, input):
         feature_maps = [input]
         for i in range(3):
-            feature_map = getattr(self, 'enc_{}'.format(i+1))(feature_maps[-1])
+            feature_map = getattr(
+                self, 'enc_{}'.format(i + 1))(feature_maps[-1])
             feature_maps.append(feature_map)
         return feature_maps[1:]
 
@@ -127,14 +128,14 @@ def total_variation_loss(image, mask, method):
     colomns_in_Pset = dilated_holes[:, :, :, 1:] * dilated_holes[:, :, :, :-1]
     rows_in_Pset = dilated_holes[:, :, 1:, :] * dilated_holes[:, :, :-1:, :]
     if method == 'sum':
-        loss = torch.sum(torch.abs(colomns_in_Pset*(
+        loss = torch.sum(torch.abs(colomns_in_Pset * (
                     image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
-            torch.sum(torch.abs(rows_in_Pset*(
+            torch.sum(torch.abs(rows_in_Pset * (
                     image[:, :, :1, :] - image[:, :, -1:, :])))
     else:
-        loss = torch.mean(torch.abs(colomns_in_Pset*(
+        loss = torch.mean(torch.abs(colomns_in_Pset * (
                     image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
-            torch.mean(torch.abs(rows_in_Pset*(
+            torch.mean(torch.abs(rows_in_Pset * (
                     image[:, :, :1, :] - image[:, :, -1:, :])))
     return loss
 
@@ -151,4 +152,3 @@ if __name__ == '__main__':
     input = img * mask
     out = torch.randn(1, 3, 500, 500)
     loss = criterion(input, mask, out, img)
-

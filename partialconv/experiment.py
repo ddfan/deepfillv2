@@ -12,6 +12,7 @@ from src.loss import InpaintingLoss, VGG16FeatureExtractor
 from src.train import Trainer
 from src.utils import Config, load_ckpt, create_ckpt_dir
 
+
 def main(args):
     # set the config
     config = Config("default_config.yml")
@@ -29,7 +30,6 @@ def main(args):
     if config.finetune:
         model.load_state_dict(torch.load(config.finetune)['model'])
     model.to(device)
-
 
     # # Data Transformation
     # img_tf = transforms.Compose([
@@ -52,7 +52,7 @@ def main(args):
     #                       data="val")
 
     print("Loading the Validation Dataset...")
-    dataset_val = InpaintDataset(config, validation = True)
+    dataset_val = InpaintDataset(config, validation=True)
 
     # Set the configuration for training
     if config.mode == "train":
@@ -113,9 +113,10 @@ def main(args):
         # <model load the trained weights>
         # evaluate(model, dataset_val)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Specify the inputs")
     parser.add_argument('--train', type=bool, default=True)
     args = parser.parse_args()
-    
+
     main(args)

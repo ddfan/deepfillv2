@@ -33,6 +33,7 @@ def get_jpgs(path):
             ret.append(filespath)
     return ret
 
+
 class Config(dict):
     def __init__(self, conf_file):
         with open(conf_file, "r") as f:

@@ -23,30 +23,30 @@ class Trainer(object):
     def iterate(self):
         print('Start the training')
         for step, (input, mask, gt) in enumerate(self.dataloader_train):
-            loss_dict = self.train(step+self.stepped, input, mask, gt)
+            loss_dict = self.train(step + self.stepped, input, mask, gt)
             # report the loss
             if step % self.config.log_interval == 0:
-                self.report(step+self.stepped, loss_dict)
+                self.report(step + self.stepped, loss_dict)
 
             # evaluation
-            if (step+self.stepped + 1) % self.config.vis_interval == 0 \
+            if (step + self.stepped + 1) % self.config.vis_interval == 0 \
                     or step == 0 or step + self.stepped == 0:
                 # set the model to evaluation mode
                 self.model.eval()
                 self.evaluate(self.model, self.dataset_val, self.device,
                               '{}/val_vis/{}.png'.format(self.config.ckpt,
-                                                         step+self.stepped),
+                                                         step + self.stepped),
                               self.experiment)
 
             # save the model
-            if (step+self.stepped + 1) % self.config.save_model_interval == 0 \
+            if (step + self.stepped + 1) % self.config.save_model_interval == 0 \
                     or (step + 1) == self.config.max_iter:
                 print('Saving the model...')
                 save_ckpt('{}/models/{}.pth'.format(self.config.ckpt,
-                                                    step+self.stepped + 1),
+                                                    step + self.stepped + 1),
                           [('model', self.model)],
                           [('optimizer', self.optimizer)],
-                          step+self.stepped + 1)
+                          step + self.stepped + 1)
 
             if step >= self.config.max_iter:
                 break
@@ -77,13 +77,11 @@ class Trainer(object):
         return to_items(loss_dict)
 
     def report(self, step, loss_dict):
-        print('[STEP: {:>6}] | Valid Loss: {:.6f} | Hole Loss: {:.6f}'\
-              '| TV Loss: {:.6f} | Perc Loss: {:.6f}'\
+        print('[STEP: {:>6}] | Valid Loss: {:.6f} | Hole Loss: {:.6f}'
+              '| TV Loss: {:.6f} | Perc Loss: {:.6f}'
               '| Style Loss: {:.6f} | Total Loss: {:.6f}'.format(
                         step, loss_dict['valid'], loss_dict['hole'],
                         loss_dict['tv'], loss_dict['perc'],
                         loss_dict['style'], loss_dict['total']))
         if self.experiment is not None:
             self.experiment.log_metrics(loss_dict, step=step)
-
-

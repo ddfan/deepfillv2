@@ -87,7 +87,7 @@ class MaskGenerator(object):
         # Random rotation
         if rotation:
             rand = np.random.randint(-180, 180)
-            M = cv2.getRotationMatrix2D((mask.shape[1]/2, mask.shape[0]/2),
+            M = cv2.getRotationMatrix2D((mask.shape[1] / 2, mask.shape[0] / 2),
                                         rand, 1.5)
             mask = cv2.warpAffine(mask, M, (mask.shape[1], mask.shape[0]))
 
@@ -101,7 +101,7 @@ class MaskGenerator(object):
         if cropping:
             x = np.random.randint(0, mask.shape[1] - self.width)
             y = np.random.randint(0, mask.shape[0] - self.height)
-            mask = mask[y:y+self.height, x:x+self.width]
+            mask = mask[y:y + self.height, x:x + self.width]
 
         return (mask > 1).astype(np.uint8)
 

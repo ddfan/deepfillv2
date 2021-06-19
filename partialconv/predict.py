@@ -62,5 +62,5 @@ if __name__ == "__main__":
     parser.add_argument('--resize', type=strtobool, default=False)
     parser.add_argument('--gpu_id', type=int, default=0)
     args = parser.parse_args()
-    
+
     main(args)

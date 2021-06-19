@@ -11,6 +11,7 @@ import cv2
 from PIL import Image
 from .utils import get_jpgs
 
+
 class Places2(Dataset):
     def __init__(self, data_root, img_transform, mask_transform, data='train'):
         super(Places2, self).__init__()
@@ -68,8 +69,10 @@ class InpaintDataset(Dataset):
         train_idxs = np.arange(len(list_IDs_train))
         np.random.shuffle(train_idxs)  # validation set is random subset
         n_train_no_val = int(self.config.train_val_split * len(list_IDs_train))
-        list_IDs_val = [list_IDs_train[idx] for idx in train_idxs[n_train_no_val:]]
-        list_IDs_train = [list_IDs_train[idx] for idx in train_idxs[:n_train_no_val]]
+        list_IDs_val = [list_IDs_train[idx]
+            for idx in train_idxs[n_train_no_val:]]
+        list_IDs_train = [list_IDs_train[idx]
+            for idx in train_idxs[:n_train_no_val]]
         list_IDs_test = list_IDs[n_split:]
 
         if self.validation:
@@ -114,8 +117,8 @@ class InpaintDataset(Dataset):
             # flip
             flip_rand = np.random.randint(0, 2)
             if flip_rand == 0:  # flip
-                input_img = input_img[:,::-1,:]
-                groundtruth = groundtruth[:,::-1]
+                input_img = input_img[:, ::-1, :]
+                groundtruth = groundtruth[:, ::-1]
 
             # # add pepper noise
             # input_img = self.add_noise_to_img(input_img)
@@ -125,7 +128,7 @@ class InpaintDataset(Dataset):
             # scale_rand = np.random.rand() * 0.2 + 0.9
             # input_img = input_img * scale_rand
             # groundtruth = groundtruth * scale_rand
-       
+
             # shift
 
             # add noise
@@ -134,7 +137,7 @@ class InpaintDataset(Dataset):
 
         # generate masks
         valid_ground_truth = np.isfinite(groundtruth)
-        valid_input = np.isfinite(input_img[:,:,0])
+        valid_input = np.isfinite(input_img[:, :, 0])
         # if self.validation:  # generate mask from known mask
         mask = valid_input * valid_ground_truth
         # else:  # generate mask from groundtruth, with random variation
@@ -172,10 +175,11 @@ class InpaintDataset(Dataset):
         # plt.show()
         # quit()
 
-        input_img = np.transpose(input_img, axes=(2,0,1))
+        input_img = np.transpose(input_img, axes=(2, 0, 1))
         input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
         mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
-        groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
+        groundtruth = torch.from_numpy(
+            groundtruth.astype(np.float32)).contiguous()
 
         # input_img: in_channels * 256 * 256; mask: in_channels * 256 * 256
 
@@ -254,8 +258,8 @@ class InpaintDataset(Dataset):
             h = int(bbox[2] * 0.1) + np.random.randint(int(bbox[2] * 0.2 + 1))
             w = int(bbox[3] * 0.1) + np.random.randint(int(bbox[3] * 0.2) + 1)
             mask[
-                (bbox[0] + h) : (bbox[0] + bbox[2] - h),
-                (bbox[1] + w) : (bbox[1] + bbox[3] - w),
+                (bbox[0] + h): (bbox[0] + bbox[2] - h),
+                (bbox[1] + w): (bbox[1] + bbox[3] - w),
             ] = 1.0
         return mask.reshape((1,) + mask.shape).astype(np.float32)
 
