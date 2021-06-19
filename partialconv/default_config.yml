@@ -4,7 +4,7 @@ cuda_id: 0
 # whether you use comet-ml for visualizing the training procedure
 comet: False
 # The Running mode (train or test)
-mode: test
+mode: train
 # fine-tuning specify the ckpt dir name you want to load the model params.
 # if you want to turn off the fine-tuning mode Set to .
 finetune: False
@@ -15,7 +15,10 @@ resume: False
 # the number of max iteration
 max_iter: 200000
 # the batch size
-batch_size: 18
+batch_size: 4
+
+train_test_split: 0.9
+train_val_split: 0.9
 
 ### DATA AUGMENTATION ###
 # the mask augmentaiton flag
@@ -50,8 +53,8 @@ save_model_interval: 50000
 log_interval: 100
 
 ### DIRECTORY PATH ###
-data_root: ~/data
-ckpt: ckpt
+data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset
+ckpt_dir_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_logs
 
 ### COMET ML SETTING ###
 api_key: api_key

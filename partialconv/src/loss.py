@@ -4,7 +4,7 @@ from torchvision import models
 
 
 class InpaintingLoss(nn.Module):
-    def __init__(self, extractor, tv_loss='mean'):
+    def __init__(self, extractor=None, tv_loss=None):
         super(InpaintingLoss, self).__init__()
         self.tv_loss = tv_loss
         self.l1 = nn.L1Loss()
@@ -16,11 +16,14 @@ class InpaintingLoss(nn.Module):
         comp = mask * input + (1 - mask) * output
 
         # Total Variation Regularization
-        tv_loss = total_variation_loss(comp, mask, self.tv_loss)
-        # tv_loss = (torch.mean(torch.abs(comp[:, :, :, :-1] - comp[:, :, :, 1:])) \
-        #           + torch.mean(torch.abs(comp[:, :, :, 1:] - comp[:, :, :, :-1])) \
-        #           + torch.mean(torch.abs(comp[:, :, :-1, :] - comp[:, :, 1:, :])) \
-        #           + torch.mean(torch.abs(comp[:, :, 1:, :] - comp[:, :, :-1, :]))) / 2
+        if self.tv_loss is not None:
+            tv_loss = total_variation_loss(comp, mask, self.tv_loss)
+            # tv_loss = (torch.mean(torch.abs(comp[:, :, :, :-1] - comp[:, :, :, 1:])) \
+            #           + torch.mean(torch.abs(comp[:, :, :, 1:] - comp[:, :, :, :-1])) \
+            #           + torch.mean(torch.abs(comp[:, :, :-1, :] - comp[:, :, 1:, :])) \
+            #           + torch.mean(torch.abs(comp[:, :, 1:, :] - comp[:, :, :-1, :]))) / 2
+        else:
+            tv_loss = 0.0
 
         # Hole Pixel Loss
         hole_loss = self.l1((1-mask) * output, (1-mask) * gt)
@@ -29,19 +32,23 @@ class InpaintingLoss(nn.Module):
         valid_loss = self.l1(mask * output, mask * gt)
 
         # Perceptual Loss and Style Loss
-        feats_out = self.extractor(output)
-        feats_comp = self.extractor(comp)
-        feats_gt = self.extractor(gt)
-        perc_loss = 0.0
-        style_loss = 0.0
-        # Calculate the L1Loss for each feature map
-        for i in range(3):
-            perc_loss += self.l1(feats_out[i], feats_gt[i])
-            perc_loss += self.l1(feats_comp[i], feats_gt[i])
-            style_loss += self.l1(gram_matrix(feats_out[i]),
-                                  gram_matrix(feats_gt[i]))
-            style_loss += self.l1(gram_matrix(feats_comp[i]),
-                                  gram_matrix(feats_gt[i]))
+        if self.extractor is not None:
+            feats_out = self.extractor(output)
+            feats_comp = self.extractor(comp)
+            feats_gt = self.extractor(gt)
+            perc_loss = 0.0
+            style_loss = 0.0
+            # Calculate the L1Loss for each feature map
+            for i in range(3):
+                perc_loss += self.l1(feats_out[i], feats_gt[i])
+                perc_loss += self.l1(feats_comp[i], feats_gt[i])
+                style_loss += self.l1(gram_matrix(feats_out[i]),
+                                      gram_matrix(feats_gt[i]))
+                style_loss += self.l1(gram_matrix(feats_comp[i]),
+                                      gram_matrix(feats_gt[i]))
+        else:
+            perc_loss = 0.0
+            style_loss = 0.0
 
         return {'valid': valid_loss,
                 'hole': hole_loss,

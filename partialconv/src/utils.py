@@ -6,9 +6,11 @@ import torch.nn as nn
 import oyaml as yaml
 
 
-def create_ckpt_dir():
+def create_ckpt_dir(ckpt_dir_root):
     now = datetime.datetime.today()
-    ckpt_dir = "ckpt/{0:%m%d_%H%M_%S}".format(now)
+    if not os.path.exists(ckpt_dir_root):
+        os.mkdir(ckpt_dir_root)
+    ckpt_dir = ckpt_dir_root + "/ckpt_{0:%m%d_%H%M_%S}".format(now)
     os.mkdir(ckpt_dir)
     os.mkdir(os.path.join(ckpt_dir, "val_vis"))
     os.mkdir(os.path.join(ckpt_dir, "models"))
@@ -22,6 +24,14 @@ def to_items(dic):
 def _to_item(item):
     return item[0], item[1].item()
 
+
+def get_jpgs(path):
+    # read a folder, return the image name
+    ret = []
+    for root, dirs, files in os.walk(path):
+        for filespath in files:
+            ret.append(filespath)
+    return ret
 
 class Config(dict):
     def __init__(self, conf_file):
