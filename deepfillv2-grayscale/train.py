@@ -147,7 +147,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("--imgsize", type=int, default=256, help="size of image")
     # mask parameters
-    parser.add_argument("--mask_type", type=str, default="free_form", help="mask type")
     parser.add_argument("--margin", type=int, default=10, help="margin of image")
     parser.add_argument("--mask_num", type=int, default=20, help="number of mask")
     parser.add_argument(

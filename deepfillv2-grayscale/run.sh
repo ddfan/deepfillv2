@@ -1,8 +1,9 @@
 #!/bin/bash
-HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
+HOME_DIR="/home/david/Documents/bag_files/spot2_lasubway_collision"
+# HOME_DIR="/home/david/Documents/bag_files/spot1_2020-10-22-14-08-00_valentine_day3_t10_game"
 # HOME_DIR="/home/david/Documents/bag_files/spot1_2021-03-19-18-29-00_subway_t8_game"
 python train.py \
---baseroot "$HOME_DIR/dataset" \
+--baseroot "$HOME_DIR/risk_dataset" \
 --save_path "$HOME_DIR/models" \
 --sample_path "$HOME_DIR/sample_imgs" \
 --pre_train True \
@@ -24,11 +25,10 @@ python train.py \
 --lr_decrease_factor 0.5 \
 --num_workers 4 \
 --imgsize 400 \
---mask_type 'known' \
 --margin 10 \
 --mask_num 100 \
 --bbox_shape 30 \
 --max_angle 4 \
 --max_len 80 \
---max_width 5 \
+--max_width 5
 # --finetune_path "$HOME_DIR/models/GrayInpainting_epoch26_batchsize4.pth" \
