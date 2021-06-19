@@ -104,6 +104,8 @@ class PConvActiv(nn.Module):
             self.activation = nn.ReLU()
         elif active == 'leaky':
             self.activation = nn.LeakyReLU(negative_slope=0.2)
+        elif active == 'sigmoid':
+            self.activation = nn.Sigmoid()
 
     def forward(self, img, mask, enc_img=None, enc_mask=None):
         if hasattr(self, 'upcat'):
@@ -126,7 +128,7 @@ class PConvUNet(nn.Module):
         self.in_channels = config.in_channels
         self.out_channels = config.out_channels
         self.img_size = config.img_size
-        
+        self.map_layers = config.input_map_layers
         self.print_sizes = False
         n_feat = 256
 
@@ -150,24 +152,30 @@ class PConvUNet(nn.Module):
                                 active=None, conv_bias=True)
 
     def forward(self, img, mask):
+        # reshape from flat to proper
         img = torch.reshape(img, (-1, self.in_channels, self.img_size, self.img_size))
-        mask_tiled = torch.reshape(mask, (-1, 1, self.img_size, self.img_size)).repeat(1,self.in_channels, 1, 1)
+        mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
 
+        # normalize image
+        img = self.normalize_img(img, mask)
+
+        # tile mask
+        mask = mask.repeat(1,self.in_channels, 1, 1)
+        
         if self.print_sizes:
-            print(img.size(), mask_tiled.size())
+            print(img.size(), mask.size())
 
-        enc_f, enc_m = [img], [mask_tiled]
+        enc_f, enc_m = [img], [mask]
         for layer_num in range(1, self.layer_size + 1):
             if layer_num == 1:
                 feature, update_mask = \
-                    getattr(self, 'enc_{}'.format(layer_num))(img, mask_tiled)
+                    getattr(self, 'enc_{}'.format(layer_num))(img, mask)
             else:
                 enc_f.append(feature)
                 enc_m.append(update_mask)
                 feature, update_mask = \
                     getattr(self, 'enc_{}'.format(layer_num))(feature,
                                                               update_mask)
-
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
 
@@ -176,13 +184,13 @@ class PConvUNet(nn.Module):
         for layer_num in reversed(range(1, self.layer_size + 1)):
             feature, update_mask = getattr(self, 'dec_{}'.format(layer_num))(
                     feature, update_mask, enc_f.pop(), enc_m.pop())
-
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
 
+        # flatten output
         feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))
 
-        return feature, mask
+        return feature
 
     def train(self, mode=True):
         """Override the default train() to freeze the BN parameters
@@ -196,6 +204,31 @@ class PConvUNet(nn.Module):
             if isinstance(module, nn.BatchNorm2d) and 'enc' in name:
                 module.eval()
 
+    def normalize_img(self, img, mask):
+        # self.map_layers = ["num_points",
+        #                     "elevation",
+        #                     "elevation_raw",
+        #                     "obstacle_occupancy",
+        #                     "num_points_binned_0",
+        #                     "num_points_binned_1",
+        #                     "num_points_binned_2",
+        #                     "num_points_binned_3",
+        #                     "num_points_binned_4",
+        #                     "robot_distance"]
+
+        elevation_copy = img[:, self.map_layers.index("elevation"), ...].clone()
+        elevation_copy[elevation_copy == 0] = float("nan")
+        median_elevation = elevation_copy.nanmedian(axis=-1)[0].nanmedian(axis=-1)[0].nan_to_num()
+
+        for i, layer in enumerate(self.map_layers):
+            if "num_points" in layer:
+                img[:, i, ...] = 1.0 - torch.exp(-img[:, i, ...] / 5.0)
+            elif "elevation" in layer:
+                img[:, i, ...] = img[:, i, ...] - median_elevation.reshape((-1, 1, 1))
+            elif "distance" in layer:
+                img[:, i, ...] = img[:, i, ...] / 25.0
+
+        return img
 
 if __name__ == '__main__':
     from utils import init_xavier

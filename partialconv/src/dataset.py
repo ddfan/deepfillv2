@@ -11,7 +11,6 @@ import cv2
 from PIL import Image
 from .utils import get_jpgs
 
-
 class Places2(Dataset):
     def __init__(self, data_root, img_transform, mask_transform, data='train'):
         super(Places2, self).__init__()
@@ -69,10 +68,8 @@ class InpaintDataset(Dataset):
         train_idxs = np.arange(len(list_IDs_train))
         np.random.shuffle(train_idxs)  # validation set is random subset
         n_train_no_val = int(self.config.train_val_split * len(list_IDs_train))
-        list_IDs_val = [list_IDs_train[idx]
-            for idx in train_idxs[n_train_no_val:]]
-        list_IDs_train = [list_IDs_train[idx]
-            for idx in train_idxs[:n_train_no_val]]
+        list_IDs_val = [list_IDs_train[idx] for idx in train_idxs[n_train_no_val:]]
+        list_IDs_train = [list_IDs_train[idx] for idx in train_idxs[:n_train_no_val]]
         list_IDs_test = list_IDs[n_split:]
 
         if self.validation:
@@ -82,16 +79,8 @@ class InpaintDataset(Dataset):
         else:
             self.imglist = list_IDs_train
 
-        self.map_layers = ["num_points",
-                            "elevation",
-                            "elevation_raw",
-                            "obstacle_occupancy",
-                            "num_points_binned_0",
-                            "num_points_binned_1",
-                            "num_points_binned_2",
-                            "num_points_binned_3",
-                            "num_points_binned_4",
-                            "robot_distance"]
+        self.map_layers = config.input_map_layers
+        self.output_layer = config.output_layer
 
     def __len__(self):
         return len(self.imglist)
@@ -105,7 +94,7 @@ class InpaintDataset(Dataset):
         for layer in self.map_layers:
             input_img.append(data[layer])
         input_img = np.stack(input_img, axis=-1)
-        groundtruth = data["risk"]
+        groundtruth = data[self.output_layer]
 
         #####  Data augmentation ######
         if not self.validation:
@@ -117,8 +106,8 @@ class InpaintDataset(Dataset):
             # flip
             flip_rand = np.random.randint(0, 2)
             if flip_rand == 0:  # flip
-                input_img = input_img[:, ::-1, :]
-                groundtruth = groundtruth[:, ::-1]
+                input_img = input_img[:,::-1,:]
+                groundtruth = groundtruth[:,::-1]
 
             # # add pepper noise
             # input_img = self.add_noise_to_img(input_img)
@@ -128,7 +117,7 @@ class InpaintDataset(Dataset):
             # scale_rand = np.random.rand() * 0.2 + 0.9
             # input_img = input_img * scale_rand
             # groundtruth = groundtruth * scale_rand
-
+       
             # shift
 
             # add noise
@@ -137,7 +126,7 @@ class InpaintDataset(Dataset):
 
         # generate masks
         valid_ground_truth = np.isfinite(groundtruth)
-        valid_input = np.isfinite(input_img[:, :, 0])
+        valid_input = np.isfinite(input_img[:,:,0])
         # if self.validation:  # generate mask from known mask
         mask = valid_input * valid_ground_truth
         # else:  # generate mask from groundtruth, with random variation
@@ -155,31 +144,17 @@ class InpaintDataset(Dataset):
         groundtruth = np.nan_to_num(groundtruth)
 
         # import matplotlib.pyplot as plt
-
-        # plt.subplot(221)
-        # plt.imshow(input_img[:,:,0])
-        # plt.title("num_points")
-        # # plt.colorbar()
-        # plt.subplot(222)
-        # plt.imshow(mask)
-        # plt.title("mask")
-        # # plt.colorbar()
-        # plt.subplot(223)
-        # plt.imshow(groundtruth)
-        # plt.title("ground_truth")
-        # # plt.colorbar()
-        # plt.subplot(224)
-        # plt.imshow(valid_ground_truth * 1.0)
-        # plt.title("output_mask")
-        # plt.colorbar()
+        # fig, axs = plt.subplots(nrows = 1, ncols = 10)
+        # for i in range(10):
+        #     im = axs[i].imshow(input_img[:,:,i])
+        #     fig.colorbar(im, ax=axs[i])
         # plt.show()
         # quit()
 
-        input_img = np.transpose(input_img, axes=(2, 0, 1))
+        input_img = np.transpose(input_img, axes=(2,0,1))
         input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
         mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
-        groundtruth = torch.from_numpy(
-            groundtruth.astype(np.float32)).contiguous()
+        groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
 
         # input_img: in_channels * 256 * 256; mask: in_channels * 256 * 256
 

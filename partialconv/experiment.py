@@ -18,6 +18,19 @@ def count_parameters(model):
 def main(args):
     # set the config
     config = Config("default_config.yml")
+
+    config.input_map_layers = ["num_points",
+                                "elevation",
+                                "elevation_raw",
+                                "obstacle_occupancy",
+                                "num_points_binned_0",
+                                "num_points_binned_1",
+                                "num_points_binned_2",
+                                "num_points_binned_3",
+                                "num_points_binned_4",
+                                "robot_distance"]
+    config.output_layer = "risk"
+
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
     print("Check Point is '{}'".format(config.ckpt))
 

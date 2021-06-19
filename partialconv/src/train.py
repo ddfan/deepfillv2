@@ -73,7 +73,7 @@ class Trainer(object):
             new_val_loss = val_loss_dict[self.config.save_model_loss]
             if new_val_loss < best_val_loss or i + 1 == self.config.max_epochs:
                 if best_val_loss != float("inf"):
-                    print('Model loss improved from {} to {}, saving.'.format(best_val_loss, new_val_loss))
+                    print('Model loss improved from {:.6f} to {:.6f}, saving.'.format(best_val_loss, new_val_loss))
                     save_ckpt('{}/models/model_{:04d}'.format(self.config.ckpt,
                                                         self.epoch),
                               [('model', self.model)],
@@ -98,7 +98,7 @@ class Trainer(object):
         gt = gt.to(self.device)
 
         # model forward
-        output, _ = self.model(input, mask)
+        output = self.model(input, mask)
         loss_dict = self.criterion(input, mask, output, gt)
         loss = 0.0
         for key, val in loss_dict.items():
@@ -124,7 +124,7 @@ class Trainer(object):
         mask = torch.stack(mask)
         gt = torch.stack(gt)
         with torch.no_grad():
-            output, _ = self.model(image.to(self.device), mask.to(self.device))
+            output = self.model(image.to(self.device), mask.to(self.device))
         output = output.to(torch.device('cpu'))
 
         # unflatten images
