@@ -86,8 +86,9 @@ def Trainer(opt):
                 os.path.join(opt.save_path, model_name + ".pth"), map_location="cpu"
             )
         )
-        example = torch.ones((1, 1, opt.imgsize, opt.imgsize))
-        torchscript_module = torch.jit.trace(net_tmp.eval(), (example, example))
+        example_in = torch.ones((1, opt.in_channels, opt.imgsize, opt.imgsize))
+        example_mask = torch.ones((1, 1, opt.imgsize, opt.imgsize)) 
+        torchscript_module = torch.jit.trace(net_tmp.eval(), (example_in, example_mask))
         torch.jit.save(torchscript_module, model_path)
 
     # ----------------------------------------
@@ -129,18 +130,18 @@ def Trainer(opt):
     for epoch in range(opt.epochs):
         running_loss = np.array([])
         tqdm_loader = tqdm(dataloader, file=sys.stdout)
-        for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
+        for batch_idx, (input_img, mask, groundtruth, output_mask) in enumerate(
             tqdm_loader
         ):
             # Load and put to cuda
-            grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
+            input_img = input_img.cuda()  # out: [B, 1, 256, 256]
             mask = mask.cuda()  # out: [B, 1, 256, 256]
 
             # forward propagation
             optimizer_g.zero_grad()
-            out = generator(grayscale, mask)  # out: [B, 1, 256, 256]
+            out = generator(input_img, mask)  # out: [B, 1, 256, 256]
             if groundtruth is None:
-                out_wholeimg = grayscale * (1 - mask) + out * mask  # in range [0, 1]
+                out_wholeimg = input_img * (1 - mask) + out * mask  # in range [0, 1]
 
                 # Mask L1 Loss
                 MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
@@ -148,8 +149,8 @@ def Trainer(opt):
                 output_mask = output_mask.cuda()
                 groundtruth = groundtruth.cuda()
 
-                # out_wholeimg = out * output_mask  # in range [0, 1]
-                out_wholeimg = (grayscale * (1 - mask) + out * mask) * output_mask
+                out_wholeimg = out * output_mask  # in range [0, 1]
+                # out_wholeimg = (input_img * (1 - mask) + out * mask) * output_mask
                 groundtruth = groundtruth * output_mask
 
                 # Mask L1 Loss
@@ -174,17 +175,17 @@ def Trainer(opt):
 
         # run validation after training epoch
         val_running_loss = np.array([])
-        for batch_idx, (grayscale, mask, groundtruth, output_mask) in enumerate(
+        for batch_idx, (input_img, mask, groundtruth, output_mask) in enumerate(
             val_dataloader
         ):
             # Load and put to cuda
-            grayscale = grayscale.cuda()  # out: [B, 1, 256, 256]
+            input_img = input_img.cuda()  # out: [B, 1, 256, 256]
             mask = mask.cuda()  # out: [B, 1, 256, 256]
 
             # forward propagation
-            out = generator(grayscale, mask)  # out: [B, 1, 256, 256]
+            out = generator(input_img, mask)  # out: [B, 1, 256, 256]
             if groundtruth is None:
-                out_wholeimg = grayscale * (1 - mask) + out * mask  # in range [0, 1]
+                out_wholeimg = input_img * (1 - mask) + out * mask  # in range [0, 1]
 
                 # Mask L1 Loss
                 MaskL1Loss = L1Loss(out_wholeimg, groundtruth)
@@ -205,7 +206,7 @@ def Trainer(opt):
             # save images
             if batch_idx < opt.save_n_images / opt.batch_size:
                 utils.sample_batch(
-                    grayscale,
+                    input_img,
                     mask,
                     out_wholeimg,
                     groundtruth,
@@ -231,7 +232,7 @@ def Trainer(opt):
 
         # Save the model
         save_model(generator, (epoch + 1), opt)
-        # utils.sample(grayscale, mask, out_wholeimg, opt.sample_path, (epoch + 1))
+        # utils.sample(input_img, mask, out_wholeimg, opt.sample_path, (epoch + 1))
 
 
 def Trainer_GAN(opt):

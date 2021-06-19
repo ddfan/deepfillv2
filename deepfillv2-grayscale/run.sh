@@ -11,6 +11,7 @@ python train.py \
 --checkpoint_interval 1 \
 --multi_gpu False \
 --gpu_ids "0" \
+--in_channels 10 \
 --epochs 100 \
 --batch_size 4 \
 --train_test_split 1.0 \

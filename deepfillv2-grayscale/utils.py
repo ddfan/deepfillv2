@@ -132,50 +132,50 @@ def check_path(path):
 # ----------------------------------------
 #    Validation and Sample at training
 # ----------------------------------------
-def sample(grayscale, mask, out, save_folder, epoch):
+def sample(input_img, mask, out, save_folder, epoch):
     # to cpu
-    grayscale = (
-        grayscale[0, :, :, :].data.cpu().numpy().transpose(1, 2, 0)
+    input_img = (
+        input_img[0, :, :, :].data.cpu().numpy().transpose(1, 2, 0)
     )  # 256 * 256 * 1
     mask = mask[0, :, :, :].data.cpu().numpy().transpose(1, 2, 0)  # 256 * 256 * 1
     out = out[0, :, :, :].data.cpu().numpy().transpose(1, 2, 0)  # 256 * 256 * 1
     # process
-    masked_img = grayscale * (1 - mask) + mask  # 256 * 256 * 1
+    masked_img = input_img * (1 - mask) + mask  # 256 * 256 * 1
     masked_img = np.concatenate(
         (masked_img, masked_img, masked_img), axis=2
     )  # 256 * 256 * 3 (sqrt)
     masked_img = (masked_img * 255).astype(np.uint8)
-    grayscale = np.concatenate(
-        (grayscale, grayscale, grayscale), axis=2
+    input_img = np.concatenate(
+        (input_img, input_img, input_img), axis=2
     )  # 256 * 256 * 3 (sqrt)
-    grayscale = (grayscale * 255).astype(np.uint8)
+    input_img = (input_img * 255).astype(np.uint8)
     mask = np.concatenate((mask, mask, mask), axis=2)  # 256 * 256 * 3 (sqrt)
     mask = (mask * 255).astype(np.uint8)
     out = np.concatenate((out, out, out), axis=2)  # 256 * 256 * 3 (sqrt)
     out = (out * 255).astype(np.uint8)
     # save
-    img = np.concatenate((grayscale, mask, masked_img, out), axis=1)
+    img = np.concatenate((input_img, mask, masked_img, out), axis=1)
     imgname = os.path.join(save_folder, str(epoch) + ".png")
     cv2.imwrite(imgname, img)
 
 
-def sample_batch(grayscale, mask, out, groundtruth, opt, epoch, batch_idx):
+def sample_batch(input_img, mask, out, groundtruth, opt, epoch, batch_idx):
 
     # reshape into images
-    grayscale = torch.reshape(grayscale, (-1, 1, opt.imgsize, opt.imgsize))
+    input_img = torch.reshape(input_img, (-1, opt.in_channels, opt.imgsize, opt.imgsize))
     mask = torch.reshape(mask, (-1, 1, opt.imgsize, opt.imgsize))
     out = torch.reshape(out, (-1, 1, opt.imgsize, opt.imgsize))
     groundtruth = torch.reshape(groundtruth, (-1, 1, opt.imgsize, opt.imgsize))
 
     # to cpu
-    grayscale = grayscale.data.cpu().numpy()  # 256 * 256 * 1
+    input_img = input_img.data.cpu().numpy()  # in_channels * 256 * 256
     mask = mask.data.cpu().numpy()
     out = out.data.cpu().numpy()
     groundtruth = groundtruth.data.cpu().numpy()
 
     # save image
 
-    for i in range(grayscale.shape[0]):
+    for i in range(input_img.shape[0]):
         imgname = os.path.join(
             opt.sample_path,
             "img_epoch_"
@@ -184,14 +184,12 @@ def sample_batch(grayscale, mask, out, groundtruth, opt, epoch, batch_idx):
             + "{:03d}".format(batch_idx * opt.batch_size + i)
             + ".png",
         )
-        max_val = 2.0 * max(
-            np.nanstd(grayscale[i, 0, ...]), np.nanstd(groundtruth[i, 0, ...])
-        )
-        min_val = -max_val
+        max_val = 1.0
+        min_val = 0.0
         plt.figure(figsize=(5, 5))
         plt.subplot(221)
-        plt.imshow(grayscale[i, 0, ...], vmin=min_val, vmax=max_val)
-        plt.title("elevation_raw")
+        plt.imshow(input_img[i, 0, ...])
+        plt.title("num_points")
         # plt.colorbar()
         plt.subplot(222)
         plt.imshow(groundtruth[i, 0, ...], vmin=min_val, vmax=max_val)

@@ -213,14 +213,14 @@ class GrayInpaintingNet(nn.Module):
             1,
             3,
             pad_type=opt.pad,
-            activation="none",
+            activation="sigmoid",
             norm="none",
         )
 
     def forward(self, img, mask):
         # for compatibility with libtorch, we assume img and mask are 1d arrays
         # reshape into batch * 1 * opt.imgsize * opt.imgsize
-        img = torch.reshape(img, (-1, 1, self.opt.imgsize, self.opt.imgsize))
+        img = torch.reshape(img, (-1, self.opt.in_channels, self.opt.imgsize, self.opt.imgsize))
         mask = torch.reshape(mask, (-1, 1, self.opt.imgsize, self.opt.imgsize))
 
         # normalize
@@ -251,8 +251,6 @@ class GrayInpaintingNet(nn.Module):
         out = self.up3(out)  # out: batch * 64 * 256 * 256
         out = self.up4(out)  # out: batch * 3 * 256 * 256
 
-        # renormalize output
-        out = out * self.opt.scale_input + img_mean
         # final output, reshape into 1d array
         out = torch.reshape(out, (-1, self.opt.imgsize * self.opt.imgsize))
 

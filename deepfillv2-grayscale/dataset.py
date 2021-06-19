@@ -33,6 +33,17 @@ class InpaintDataset(Dataset):
         else:
             self.imglist = list_IDs_train
 
+        self.map_layers = ["num_points",
+                            "elevation",
+                            "elevation_raw",
+                            "obstacle_occupancy",
+                            "num_points_binned_0",
+                            "num_points_binned_1",
+                            "num_points_binned_2",
+                            "num_points_binned_3",
+                            "num_points_binned_4",
+                            "robot_distance"]
+
     def __len__(self):
         return len(self.imglist)
 
@@ -41,36 +52,43 @@ class InpaintDataset(Dataset):
         datafilepath = os.path.join(self.opt.baseroot, datafilename)
         data = np.load(datafilepath)
 
-        grayscale = data["num_points"]
+        input_img = []
+        for layer in self.map_layers:
+            input_img.append(data[layer])
+        input_img = np.stack(input_img, axis=-1)
         groundtruth = data["risk"]
 
         #####  Data augmentation ######
         if not self.validation:
             # rot
             rot_rand = np.random.randint(0, 4)
-            grayscale = np.rot90(grayscale, k=-rot_rand)
+            input_img = np.rot90(input_img, k=-rot_rand)
             groundtruth = np.rot90(groundtruth, k=-rot_rand)
 
             # flip
             flip_rand = np.random.randint(0, 2)
             if flip_rand == 0:  # flip
-                grayscale = grayscale[:,::-1]
+                input_img = input_img[:,::-1,:]
                 groundtruth = groundtruth[:,::-1]
 
-            # add pepper noise
-            grayscale = self.add_noise_to_img(grayscale)
-            groundtruth = self.add_noise_to_img(groundtruth)
+            # # add pepper noise
+            # input_img = self.add_noise_to_img(input_img)
+            # groundtruth = self.add_noise_to_img(groundtruth)
 
-            # random distortion in scale
-            scale_rand = np.random.rand() * 0.2 + 0.9
-            grayscale = grayscale * scale_rand
-            groundtruth = groundtruth * scale_rand
+            # # random distortion in scale
+            # scale_rand = np.random.rand() * 0.2 + 0.9
+            # input_img = input_img * scale_rand
+            # groundtruth = groundtruth * scale_rand
        
+            # shift
+
+            # add noise
+
         #####################################
 
         # generate masks
         valid_ground_truth = np.isfinite(groundtruth)
-        valid_input = np.isfinite(grayscale)
+        valid_input = np.isfinite(input_img[:,:,0])
         # if self.validation:  # generate mask from known mask
         mask = valid_input * valid_ground_truth
         # else:  # generate mask from groundtruth, with random variation
@@ -84,14 +102,14 @@ class InpaintDataset(Dataset):
         #     mask = random_mask * valid_ground_truth
 
         # set invalid pixels to 0
-        grayscale = np.nan_to_num(grayscale)
+        input_img = np.nan_to_num(input_img)
         groundtruth = np.nan_to_num(groundtruth)
 
         if self.opt.view_input_only:
             import matplotlib.pyplot as plt
 
             plt.subplot(221)
-            plt.imshow(grayscale)
+            plt.imshow(input_img[:,:,0])
             plt.title("num_points")
             # plt.colorbar()
             plt.subplot(222)
@@ -109,22 +127,23 @@ class InpaintDataset(Dataset):
             plt.show()
             quit()
 
-        grayscale = torch.from_numpy(grayscale.astype(np.float32)).contiguous()
+        input_img = np.transpose(input_img, axes=(2,0,1))
+        input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
         mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
         groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
         output_mask = torch.from_numpy(
             valid_ground_truth.astype(np.float32)
         ).contiguous()
 
-        # grayscale: 1 * 256 * 256; mask: 1 * 256 * 256
+        # input_img: in_channels * 256 * 256; mask: in_channels * 256 * 256
 
         # flatten data for libtorch compatability
-        grayscale = torch.flatten(grayscale, start_dim=0)
+        input_img = torch.flatten(input_img, start_dim=0)
         mask = torch.flatten(mask, start_dim=0)
         groundtruth = torch.flatten(groundtruth, start_dim=0)
         output_mask = torch.flatten(output_mask, start_dim=0)
 
-        return grayscale, mask, groundtruth, output_mask
+        return input_img, mask, groundtruth, output_mask
 
     def random_ff_mask(self, shape, max_angle=4, max_len=40, max_width=10, times=15):
         """Generate a random free form mask with configuration.
