@@ -12,6 +12,8 @@ from src.loss import InpaintingLoss, VGG16FeatureExtractor
 from src.train import Trainer
 from src.utils import Config, load_ckpt, create_ckpt_dir
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def main(args):
     # set the config
@@ -29,6 +31,8 @@ def main(args):
     if config.finetune:
         model.load_state_dict(torch.load(config.finetune)['model'])
     model.to(device)
+
+    print("Model has {} parameters".format(count_parameters(model)))
 
     # # Data Transformation
     # img_tf = transforms.Compose([

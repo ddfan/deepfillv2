@@ -126,21 +126,24 @@ class PConvUNet(nn.Module):
         self.in_channels = config.in_channels
         self.out_channels = config.out_channels
         self.img_size = config.img_size
+        
+        self.print_sizes = False
+        n_feat = 256
 
         self.enc_1 = PConvActiv(self.in_channels, 64, 'down-7', bn=False)
         self.enc_2 = PConvActiv(64, 128, 'down-5')
         self.enc_3 = PConvActiv(128, 256, 'down-5')
-        self.enc_4 = PConvActiv(256, 512, 'down-3')
-        self.enc_5 = PConvActiv(512, 512, 'down-3')
-        self.enc_6 = PConvActiv(512, 512, 'down-3')
-        self.enc_7 = PConvActiv(512, 512, 'down-3')
-        self.enc_8 = PConvActiv(512, 512, 'down-3')
+        self.enc_4 = PConvActiv(256, n_feat, 'down-3')
+        self.enc_5 = PConvActiv(n_feat, n_feat, 'down-3')
+        self.enc_6 = PConvActiv(n_feat, n_feat, 'down-3')
+        self.enc_7 = PConvActiv(n_feat, n_feat, 'down-3')
+        self.enc_8 = PConvActiv(n_feat, n_feat, 'down-3')
 
-        self.dec_8 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
-        self.dec_7 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
-        self.dec_6 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
-        self.dec_5 = PConvActiv(512 + 512, 512, dec=True, active='leaky')
-        self.dec_4 = PConvActiv(512 + 256, 256, dec=True, active='leaky')
+        self.dec_8 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        self.dec_7 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        self.dec_6 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        self.dec_5 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        self.dec_4 = PConvActiv(n_feat + 256, 256, dec=True, active='leaky')
         self.dec_3 = PConvActiv(256 + 128, 128, dec=True, active='leaky')
         self.dec_2 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
         self.dec_1 = PConvActiv(64 + self.in_channels, self.out_channels, dec=True, bn=False,
@@ -149,6 +152,9 @@ class PConvUNet(nn.Module):
     def forward(self, img, mask):
         img = torch.reshape(img, (-1, self.in_channels, self.img_size, self.img_size))
         mask_tiled = torch.reshape(mask, (-1, 1, self.img_size, self.img_size)).repeat(1,self.in_channels, 1, 1)
+
+        if self.print_sizes:
+            print(img.size(), mask_tiled.size())
 
         enc_f, enc_m = [img], [mask_tiled]
         for layer_num in range(1, self.layer_size + 1):
@@ -162,11 +168,17 @@ class PConvUNet(nn.Module):
                     getattr(self, 'enc_{}'.format(layer_num))(feature,
                                                               update_mask)
 
+            if self.print_sizes:
+                print(feature.size(), update_mask.size())
+
         assert len(enc_f) == self.layer_size
 
         for layer_num in reversed(range(1, self.layer_size + 1)):
             feature, update_mask = getattr(self, 'dec_{}'.format(layer_num))(
                     feature, update_mask, enc_f.pop(), enc_m.pop())
+
+            if self.print_sizes:
+                print(feature.size(), update_mask.size())
 
         feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))
 

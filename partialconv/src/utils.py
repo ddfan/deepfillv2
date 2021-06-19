@@ -4,7 +4,8 @@ import torch
 
 import torch.nn as nn
 import oyaml as yaml
-
+import copy
+from src.model import PConvUNet
 
 def create_ckpt_dir(ckpt_dir_root):
     now = datetime.datetime.today()
@@ -73,15 +74,22 @@ def get_state_dict_on_cpu(obj):
     return state_dict
 
 
-def save_ckpt(ckpt_name, models, optimizers, n_iter):
+def save_ckpt(ckpt_name, models, optimizers, n_iter, config):
     ckpt_dict = {"n_iter": n_iter}
     for prefix, model in models:
         ckpt_dict[prefix] = get_state_dict_on_cpu(model)
 
     for prefix, optimizer in optimizers:
         ckpt_dict[prefix] = optimizer.state_dict()
-    torch.save(ckpt_dict, ckpt_name)
+    torch.save(ckpt_dict, ckpt_name + ".pth")
 
+    # convert the student network to a TorchScript file for inferencing in C++
+    net_tmp = PConvUNet(config)
+    net_tmp.load_state_dict(ckpt_dict["model"], strict=False)
+    example_in = torch.ones((1, config.in_channels, config.img_size, config.img_size)).to('cpu')
+    example_mask = torch.ones((1, 1, config.img_size, config.img_size)).to('cpu')
+    torchscript_module = torch.jit.trace(net_tmp, (example_in, example_mask))
+    torch.jit.save(torchscript_module, ckpt_name + ".pt")
 
 def load_ckpt(ckpt_name, models, optimizers=None):
     ckpt_dict = torch.load(ckpt_name)

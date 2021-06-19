@@ -17,7 +17,7 @@ max_epochs: 200000
 # the batch size
 batch_size: 4
 
-train_test_split: 0.12
+train_test_split: 1.0
 train_val_split: 0.9
 
 ### DATA AUGMENTATION ###
@@ -49,12 +49,12 @@ weight_decay: 0
 
 ### LOG INTERVALS ###
 # viaulizing the output images
-vis_interval: 1
 num_vis_imgs: 8
-# saving the model
-save_model_interval: 5
+# saving the model, check if this validation loss has improved
+save_model_loss: total
 # printing the losses to standard output line
 print_step_losses: False
+show_progress_bar: True
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset
