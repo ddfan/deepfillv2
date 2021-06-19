@@ -25,8 +25,7 @@ def main(args):
 
     # Define the model
     print("Loading the Model...")
-    model = PConvUNet(finetune=config.finetune,
-                      layer_size=config.layer_size)
+    model = PConvUNet(config)
     if config.finetune:
         model.load_state_dict(torch.load(config.finetune)['model'])
     model.to(device)
@@ -51,9 +50,10 @@ def main(args):
     #                       mask_tf,
     #                       data="val")
 
-    print("Loading the Validation Dataset...")
+    # print("Loading the Validation Dataset...")
     dataset_val = InpaintDataset(config, validation=True)
-
+    print("Validating on " + str(len(dataset_val)) + " datapoints.")
+    
     # Set the configuration for training
     if config.mode == "train":
         # set the comet-ml
@@ -67,8 +67,9 @@ def main(args):
             experiment = None
 
         # Define the InpaintDataset Dataset and Data Loader
-        print("Loading the Training Dataset...")
+        # print("Loading the Training Dataset...")
         dataset_train = InpaintDataset(config)
+        print("Training on " + str(len(dataset_train)) + " datapoints.")
 
         # Define the Loss fucntion
         # criterion = InpaintingLoss(VGG16FeatureExtractor(),

@@ -119,12 +119,15 @@ class PConvActiv(nn.Module):
 
 
 class PConvUNet(nn.Module):
-    def __init__(self, finetune, in_ch=3, layer_size=6):
+    def __init__(self, config):
         super().__init__()
-        self.freeze_enc_bn = True if finetune else False
-        self.layer_size = layer_size
+        self.freeze_enc_bn = True if config.finetune else False
+        self.layer_size = config.layer_size
+        self.in_channels = config.in_channels
+        self.out_channels = config.out_channels
+        self.img_size = config.img_size
 
-        self.enc_1 = PConvActiv(in_ch, 64, 'down-7', bn=False)
+        self.enc_1 = PConvActiv(self.in_channels, 64, 'down-7', bn=False)
         self.enc_2 = PConvActiv(64, 128, 'down-5')
         self.enc_3 = PConvActiv(128, 256, 'down-5')
         self.enc_4 = PConvActiv(256, 512, 'down-3')
@@ -140,15 +143,18 @@ class PConvUNet(nn.Module):
         self.dec_4 = PConvActiv(512 + 256, 256, dec=True, active='leaky')
         self.dec_3 = PConvActiv(256 + 128, 128, dec=True, active='leaky')
         self.dec_2 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
-        self.dec_1 = PConvActiv(64 + 3, 3, dec=True, bn=False,
+        self.dec_1 = PConvActiv(64 + self.in_channels, self.out_channels, dec=True, bn=False,
                                 active=None, conv_bias=True)
 
     def forward(self, img, mask):
-        enc_f, enc_m = [img], [mask]
+        img = torch.reshape(img, (-1, self.in_channels, self.img_size, self.img_size))
+        mask_tiled = torch.reshape(mask, (-1, 1, self.img_size, self.img_size)).repeat(1,self.in_channels, 1, 1)
+
+        enc_f, enc_m = [img], [mask_tiled]
         for layer_num in range(1, self.layer_size + 1):
             if layer_num == 1:
                 feature, update_mask = \
-                    getattr(self, 'enc_{}'.format(layer_num))(img, mask)
+                    getattr(self, 'enc_{}'.format(layer_num))(img, mask_tiled)
             else:
                 enc_f.append(feature)
                 enc_m.append(update_mask)
@@ -161,6 +167,8 @@ class PConvUNet(nn.Module):
         for layer_num in reversed(range(1, self.layer_size + 1)):
             feature, update_mask = getattr(self, 'dec_{}'.format(layer_num))(
                     feature, update_mask, enc_f.pop(), enc_m.pop())
+
+        feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))
 
         return feature, mask
 

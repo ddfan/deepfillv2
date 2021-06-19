@@ -13,7 +13,8 @@ class InpaintingLoss(nn.Module):
 
     def forward(self, input, mask, output, gt):
         # Non-hole pixels directly set to ground truth
-        comp = mask * input + (1 - mask) * output
+        if self.tv_loss is not None or self.extractor is not None:
+            comp = mask * input + (1 - mask) * output
 
         # Total Variation Regularization
         if self.tv_loss is not None:
@@ -23,7 +24,7 @@ class InpaintingLoss(nn.Module):
             #           + torch.mean(torch.abs(comp[:, :, :-1, :] - comp[:, :, 1:, :])) \
             #           + torch.mean(torch.abs(comp[:, :, 1:, :] - comp[:, :, :-1, :]))) / 2
         else:
-            tv_loss = 0.0
+            tv_loss = torch.tensor(0.0)
 
         # Hole Pixel Loss
         hole_loss = self.l1((1 - mask) * output, (1 - mask) * gt)
@@ -47,8 +48,8 @@ class InpaintingLoss(nn.Module):
                 style_loss += self.l1(gram_matrix(feats_comp[i]),
                                       gram_matrix(feats_gt[i]))
         else:
-            perc_loss = 0.0
-            style_loss = 0.0
+            perc_loss = torch.tensor(0.0)
+            style_loss = torch.tensor(0.0)
 
         return {'valid': valid_loss,
                 'hole': hole_loss,

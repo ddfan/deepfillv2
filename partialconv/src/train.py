@@ -2,7 +2,8 @@ from torch.utils.data import DataLoader
 
 from .utils import save_ckpt, to_items
 from .evaluate import evaluate
-
+from tqdm import tqdm
+import sys
 
 class Trainer(object):
     def __init__(self, step, config, device, model, dataset_train,
@@ -12,8 +13,8 @@ class Trainer(object):
         self.device = device
         self.model = model
         self.dataloader_train = DataLoader(dataset_train,
-                                           batch_size=config.batch_size,
-                                           shuffle=True)
+                                       batch_size=config.batch_size,
+                                       shuffle=True)
         self.dataset_val = dataset_val
         self.criterion = criterion
         self.optimizer = optimizer
@@ -21,8 +22,9 @@ class Trainer(object):
         self.experiment = experiment
 
     def iterate(self):
-        print('Start the training')
-        for step, (input, mask, gt) in enumerate(self.dataloader_train):
+        print('Start the training...')
+        tqdm_dataloader = tqdm(self.dataloader_train, file=sys.stdout)
+        for step, (input, mask, gt) in enumerate(tqdm_dataloader):
             loss_dict = self.train(step + self.stepped, input, mask, gt)
             # report the loss
             if step % self.config.log_interval == 0:
@@ -36,6 +38,7 @@ class Trainer(object):
                 self.evaluate(self.model, self.dataset_val, self.device,
                               '{}/val_vis/{}.png'.format(self.config.ckpt,
                                                          step + self.stepped),
+                              self.config,
                               self.experiment)
 
             # save the model
