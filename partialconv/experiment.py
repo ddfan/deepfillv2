@@ -90,17 +90,17 @@ def main(args):
                                         momentum=config.momentum,
                                         weight_decay=config.weight_decay)
 
-        start_iter = 0
+        start_epoch = 0
         if config.resume:
             print("Loading the trained params and the state of optimizer...")
-            start_iter = load_ckpt(config.resume,
+            start_epoch = load_ckpt(config.resume,
                                    [("model", model)],
                                    [("optimizer", optimizer)])
             for param_group in optimizer.param_groups:
                 param_group["lr"] = lr
-            print("Starting from iter ", start_iter)
+            print("Starting from epoch ", start_epoch)
 
-        trainer = Trainer(start_iter, config, device, model, dataset_train,
+        trainer = Trainer(start_epoch, config, device, model, dataset_train,
                           dataset_val, criterion, optimizer, experiment=experiment)
         if config.comet:
             with experiment.train():

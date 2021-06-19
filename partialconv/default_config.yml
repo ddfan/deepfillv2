@@ -13,11 +13,11 @@ resume: False
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
-max_iter: 200000
+max_epochs: 200000
 # the batch size
 batch_size: 4
 
-train_test_split: 0.9
+train_test_split: 0.12
 train_val_split: 0.9
 
 ### DATA AUGMENTATION ###
@@ -49,11 +49,12 @@ weight_decay: 0
 
 ### LOG INTERVALS ###
 # viaulizing the output images
-vis_interval: 1000
+vis_interval: 1
+num_vis_imgs: 8
 # saving the model
-save_model_interval: 50000
+save_model_interval: 5
 # printing the losses to standard output line
-log_interval: 100
+print_step_losses: False
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset
