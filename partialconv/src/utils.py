@@ -31,7 +31,7 @@ def get_jpgs(path):
     ret = []
     for root, dirs, files in os.walk(path):
         for filespath in files:
-            ret.append(filespath)
+            ret.append(root + "/" + filespath)
     return ret
 
 

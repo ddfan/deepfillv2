@@ -24,7 +24,6 @@ def main(args):
     
     config.input_map_layers = ["num_points",
                                 "elevation",
-                                "risk",
                                 "obstacle_occupancy",
                                 "num_points_binned_0",
                                 "num_points_binned_1",
@@ -33,7 +32,11 @@ def main(args):
                                 "num_points_binned_4",
                                 "robot_distance"]
     # config.output_layer = "risk_ground_truth"
-    config.output_layer = "risk_ground_truth"
+    config.output_layer = "risk"
+
+
+    dataset_val = InpaintDataset(config, validation=True)
+    dataset_val.clean_data()
 
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
     print("Check Point is '{}'".format(config.ckpt))
@@ -90,6 +93,7 @@ def main(args):
         # Define the InpaintDataset Dataset and Data Loader
         # print("Loading the Training Dataset...")
         dataset_train = InpaintDataset(config)
+        dataset_train.clean_data()
         print("Training on " + str(len(dataset_train)) + " datapoints.")
 
         # Define the Loss fucntion

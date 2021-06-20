@@ -92,9 +92,15 @@ class InpaintDataset(Dataset):
     def __len__(self):
         return len(self.imglist)
 
+    def clean_data(self):
+        for filename in self.imglist:
+            try:
+                data = np.load(filename)
+            except:
+                print(filename)
+    
     def __getitem__(self, index):
-        datafilename = self.imglist[index]
-        datafilepath = os.path.join(self.config.data_root, datafilename)
+        datafilepath = self.imglist[index]
         data = np.load(datafilepath)
 
         input_img = []
