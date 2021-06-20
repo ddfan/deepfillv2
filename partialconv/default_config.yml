@@ -42,7 +42,7 @@ tv_loss: mean
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
-initial_lr: 0.001
+initial_lr: 0.0002
 finetune_lr: 0.0005
 momentum: 0
 weight_decay: 0

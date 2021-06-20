@@ -28,6 +28,7 @@ def main(args):
                                 "num_points_binned_3",
                                 "num_points_binned_4",
                                 "robot_distance"]
+    # config.output_layer = "risk_ground_truth"
     config.output_layer = "risk"
 
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)

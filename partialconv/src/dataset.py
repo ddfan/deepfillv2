@@ -62,6 +62,13 @@ class InpaintDataset(Dataset):
         self.validation = validation
         self.test = test
 
+        self.img_transform = transforms.Compose([
+                    transforms.RandomAffine(degrees=(0,360),
+                                            translate=(0.0,0.2),
+                                            scale=(0.9,1.0)),
+                    transforms.RandomVerticalFlip()
+                    ])
+
         list_IDs = get_jpgs(config.data_root)
         n_split = int(self.config.train_test_split * len(list_IDs))
         list_IDs_train = list_IDs[:n_split]
@@ -96,34 +103,6 @@ class InpaintDataset(Dataset):
         input_img = np.stack(input_img, axis=-1)
         groundtruth = data[self.output_layer]
 
-        #####  Data augmentation ######
-        if not self.validation:
-            # rot
-            rot_rand = np.random.randint(0, 4)
-            input_img = np.rot90(input_img, k=-rot_rand)
-            groundtruth = np.rot90(groundtruth, k=-rot_rand)
-
-            # flip
-            flip_rand = np.random.randint(0, 2)
-            if flip_rand == 0:  # flip
-                input_img = input_img[:,::-1,:]
-                groundtruth = groundtruth[:,::-1]
-
-            # # add pepper noise
-            # input_img = self.add_noise_to_img(input_img)
-            # groundtruth = self.add_noise_to_img(groundtruth)
-
-            # # random distortion in scale
-            # scale_rand = np.random.rand() * 0.2 + 0.9
-            # input_img = input_img * scale_rand
-            # groundtruth = groundtruth * scale_rand
-       
-            # shift
-
-            # add noise
-
-        #####################################
-
         # generate masks
         valid_ground_truth = np.isfinite(groundtruth)
         valid_input = np.isfinite(input_img[:,:,0])
@@ -143,20 +122,63 @@ class InpaintDataset(Dataset):
         input_img = np.nan_to_num(input_img)
         groundtruth = np.nan_to_num(groundtruth)
 
+        input_img = np.transpose(input_img, axes=(2,0,1)) # C x H x W
+        mask = np.expand_dims(mask, axis=0)
+        groundtruth = np.expand_dims(groundtruth, axis=0)
+
+        #####  Data augmentation ######
+        n_layers = len(self.map_layers)
+        if not self.validation:
+            img_mask_gt = np.concatenate([input_img, mask, groundtruth], axis=0)
+            img_mask_gt = torch.from_numpy(img_mask_gt.astype(np.float32)).contiguous()
+            img_mask_gt_tf = self.img_transform(img_mask_gt)
+            input_img = img_mask_gt_tf[:n_layers,:,:]
+            mask = img_mask_gt_tf[n_layers:n_layers+1,:,:]
+            groundtruth = img_mask_gt_tf[n_layers+1:n_layers+2,:,:]
+
+            # # rot
+            # rot_rand = np.random.randint(0, 4)
+            # input_img = np.rot90(input_img, k=-rot_rand)
+            # groundtruth = np.rot90(groundtruth, k=-rot_rand)
+
+            # # flip
+            # flip_rand = np.random.randint(0, 2)
+            # if flip_rand == 0:  # flip
+            #     input_img = input_img[:,::-1,:]
+            #     groundtruth = groundtruth[:,::-1]
+
+            # # add pepper noise
+            # input_img = self.add_noise_to_img(input_img)
+            # groundtruth = self.add_noise_to_img(groundtruth)
+
+            # # random distortion in scale
+            # scale_rand = np.random.rand() * 0.2 + 0.9
+            # input_img = input_img * scale_rand
+            # groundtruth = groundtruth * scale_rand
+       
+            # shift
+
+            # add noise
+        else:        
+            input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
+            mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
+            groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
+
+
+        #####################################
+
         # import matplotlib.pyplot as plt
-        # fig, axs = plt.subplots(nrows = 1, ncols = 10)
-        # for i in range(10):
-        #     im = axs[i].imshow(input_img[:,:,i])
+        # fig, axs = plt.subplots(nrows = 2, ncols = int((n_layers + 2) / 2.0 + 1.0))
+        # axs = axs.flatten()
+        # for i in range(n_layers):
+        #     im = axs[i].imshow(input_img[i,:,:])
         #     fig.colorbar(im, ax=axs[i])
+        # im = axs[n_layers].imshow(mask[0,:,:])
+        # fig.colorbar(im, ax=axs[n_layers])
+        # im = axs[n_layers+1].imshow(groundtruth[0,:,:])
+        # fig.colorbar(im, ax=axs[n_layers])
         # plt.show()
         # quit()
-
-        input_img = np.transpose(input_img, axes=(2,0,1))
-        input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
-        mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
-        groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
-
-        # input_img: in_channels * 256 * 256; mask: in_channels * 256 * 256
 
         # flatten data for libtorch compatability
         input_img = torch.flatten(input_img, start_dim=0)
