@@ -207,17 +207,6 @@ class PConvUNet(nn.Module):
                 module.eval()
 
     def normalize_img(self, img, mask):
-        # self.map_layers = ["num_points",
-        #                     "elevation",
-        #                     "elevation_raw",
-        #                     "obstacle_occupancy",
-        #                     "num_points_binned_0",
-        #                     "num_points_binned_1",
-        #                     "num_points_binned_2",
-        #                     "num_points_binned_3",
-        #                     "num_points_binned_4",
-        #                     "robot_distance"]
-
         elevation_copy = img[:, self.map_layers.index("elevation"), ...].clone()
         elevation_copy[elevation_copy == 0] = float("nan")
         median_elevation = elevation_copy.nanmedian(axis=-1)[0].nanmedian(axis=-1)[0].nan_to_num()

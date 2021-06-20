@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class Trainer(object):
     def __init__(self, epoch, config, device, model, dataset_train,
-                 dataset_val, criterion, optimizer, experiment):
+                 dataset_val, criterion, optimizer):
         self.epoch = epoch
         self.config = config
         self.device = device
@@ -25,7 +25,6 @@ class Trainer(object):
                                        shuffle=False)
         self.criterion = criterion
         self.optimizer = optimizer
-        self.experiment = experiment
 
         self.train_writer = SummaryWriter(self.config.ckpt + "/train", flush_secs=1)
         self.val_writer = SummaryWriter(self.config.ckpt + "/val", flush_secs=1)
@@ -144,9 +143,6 @@ class Trainer(object):
         if filename is not None:
             save_image(grid, filename)
         
-            if self.experiment is not None:
-                self.experiment.log_image(filename, filename)
-
     def report(self, epoch, step, loss_dict):
         print('[EPOCH: {:>6}, STEP: {:>6}] | Valid Loss: {:.6f} | Hole Loss: {:.6f}'
               '| TV Loss: {:.6f} | Perc Loss: {:.6f}'
@@ -154,8 +150,6 @@ class Trainer(object):
                         step, loss_dict['valid'], loss_dict['hole'],
                         loss_dict['tv'], loss_dict['perc'],
                         loss_dict['style'], loss_dict['total']))
-        if self.experiment is not None:
-            self.experiment.log_metrics(loss_dict, step=step)
 
     def accumulate_loss(self, acc_dict, loss_dict, n_data):
         # accumulate the loss

@@ -60,7 +60,3 @@ show_progress_bar: True
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset
 ckpt_dir_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_logs
 
-### COMET ML SETTING ###
-api_key: api_key
-project_name: project_name
-workspace: user_name

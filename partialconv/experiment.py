@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# from comet_ml import Experiment
-
 import argparse
 import torch
 from torchvision import transforms
@@ -54,42 +52,12 @@ def main(args):
 
     print("Model has {} parameters".format(count_parameters(model)))
 
-    # # Data Transformation
-    # img_tf = transforms.Compose([
-    #             transforms.ToTensor()
-    #             ])
-    # if config.mask_augment:
-    #     mask_tf = transforms.Compose([
-    #                 transforms.RandomResizedCrop(256),
-    #                 transforms.ToTensor()
-    #                 ])
-    # else:
-    #     mask_tf = transforms.Compose([
-    #                 transforms.ToTensor()
-    #                 ])
-
-    # # Define the Validation set
-    # dataset_val = Places2(config.data_root,
-    #                       img_tf,
-    #                       mask_tf,
-    #                       data="val")
-
     # print("Loading the Validation Dataset...")
     dataset_val = InpaintDataset(config, validation=True)
     print("Validating on " + str(len(dataset_val)) + " datapoints.")
     
     # Set the configuration for training
     if config.mode == "train":
-        # set the comet-ml
-        if config.comet:
-            print("Connecting to Comet ML...")
-            experiment = Experiment(api_key=config.api_key,
-                                    project_name=config.project_name,
-                                    workspace=config.workspace)
-            experiment.log_parameters(config.__dict__)
-        else:
-            experiment = None
-
         # Define the InpaintDataset Dataset and Data Loader
         # print("Loading the Training Dataset...")
         dataset_train = InpaintDataset(config)
@@ -126,12 +94,8 @@ def main(args):
             print("Starting from epoch ", start_epoch)
 
         trainer = Trainer(start_epoch, config, device, model, dataset_train,
-                          dataset_val, criterion, optimizer, experiment=experiment)
-        if config.comet:
-            with experiment.train():
-                trainer.iterate()
-        else:
-            trainer.iterate()
+                          dataset_val, criterion, optimizer)
+        trainer.iterate()
 
     # Set the configuration for testing
     elif config.mode == "test":
