@@ -25,7 +25,7 @@ train_val_split: 0.9
 mask_augment: False
 
 ### NETWORK SETTING ###
-in_channels: 9
+in_channels: 10
 out_channels: 1
 img_size: 400
 # UNet layer size

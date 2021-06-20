@@ -136,7 +136,8 @@ class Trainer(object):
         # output_comp = mask * image + (1 - mask) * output
         # grid = make_grid(torch.cat([image, mask, output, output_comp, gt], dim=0))
         idx = self.config.input_map_layers.index("obstacle_occupancy")
-        grid = make_grid(torch.cat([image[:, idx:idx+1, :, :], mask, output * mask, gt], dim=0), scale_each=True)
+        mae = torch.abs((gt - output) * mask)
+        grid = make_grid(torch.cat([image[:, idx:idx + 1, :, :], output * mask, gt, mae], dim=0), scale_each=True)
 
         self.val_writer.add_image('images', grid, epoch)
         

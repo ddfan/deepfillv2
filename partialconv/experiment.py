@@ -19,8 +19,12 @@ def main(args):
     # set the config
     config = Config("default_config.yml")
 
+    config.data_root = args.data_root
+    config.ckpt_dir_root = args.ckpt_dir_root
+    
     config.input_map_layers = ["num_points",
                                 "elevation",
+                                "risk",
                                 "obstacle_occupancy",
                                 "num_points_binned_0",
                                 "num_points_binned_1",
@@ -29,7 +33,7 @@ def main(args):
                                 "num_points_binned_4",
                                 "robot_distance"]
     # config.output_layer = "risk_ground_truth"
-    config.output_layer = "risk"
+    config.output_layer = "risk_ground_truth"
 
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
     print("Check Point is '{}'".format(config.ckpt))
@@ -134,7 +138,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Specify the inputs")
-    parser.add_argument('--train', type=bool, default=True)
+    parser.add_argument('--data_root', type=str, default="data")
+    parser.add_argument('--ckpt_dir_root', type=str, default="data/training_logs")
     args = parser.parse_args()
 
     main(args)
