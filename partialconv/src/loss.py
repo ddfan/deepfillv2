@@ -9,6 +9,7 @@ class CvarLoss(nn.Module):
         self.l1 = nn.L1Loss()
         self.img_size = config.img_size
         self.loss_huber = config.loss_huber
+        self.use_cvar_less_var = config.use_cvar_less_var
 
     def forward(self, input, mask, output, gt, alpha=None):
         mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
@@ -17,8 +18,11 @@ class CvarLoss(nn.Module):
         var_and_cvar = torch.reshape(output, (-1, 2, self.img_size, self.img_size))
 
         var = var_and_cvar[:,0,:,:]
-        cvar_less_var = var_and_cvar[:,1,:,:]
-        cvar = cvar_less_var + var.detach()
+        if self.use_cvar_less_var:
+            cvar_less_var = var_and_cvar[:, 1, :, :]
+            cvar = cvar_less_var + var.detach()
+        else:
+            cvar = var_and_cvar[:, 1, :, :]
 
         var_loss = self.var_huber_loss(gt, var, alpha)
         var_error = self.var_error(gt, var, alpha)

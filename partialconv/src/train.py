@@ -140,7 +140,10 @@ class Trainer(object):
             # output_comp = mask * image + (1 - mask) * output
             idx = self.config.input_map_layers.index("obstacle_occupancy")
             var = output[:,0:1,:,:]
-            cvar = output[:,1:2,:,:]
+            if self.config.use_cvar_less_var:
+                cvar = output[:, 0:1, :, :] + output[:, 1:2, :, :]
+            else:
+                cvar = output[:, 1:2, :, :]
             grid = make_grid(torch.cat([image[:, idx:idx + 1, :, :], gt, var, cvar], dim=0), scale_each=True)
         else:
             idx = self.config.input_map_layers.index("obstacle_occupancy")

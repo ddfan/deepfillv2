@@ -15,7 +15,7 @@ def count_parameters(model):
 
 def main(args):
     # set the config
-    config = Config("default_config.yml")
+    config = Config(args.config)
 
     config.data_root = args.data_root
     config.ckpt_dir_root = args.ckpt_dir_root
@@ -110,6 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Specify the inputs")
     parser.add_argument('--data_root', type=str, default="data")
     parser.add_argument('--ckpt_dir_root', type=str, default="data/training_logs")
+    parser.add_argument('--config', type=str, default="default_config.yml")
     args = parser.parse_args()
 
     main(args)

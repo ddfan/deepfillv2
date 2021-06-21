@@ -162,7 +162,7 @@ class PConvUNet(nn.Module):
         # reshape from flat to proper
         img = torch.reshape(img, (-1, self.img_channels, self.img_size, self.img_size))
         mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
-        if alpha is not None:
+        if alpha is not None and self.use_cvar_loss:
             alpha = torch.reshape(alpha, (-1, 1, self.img_size, self.img_size))
             # append alpha channel to img
             img = torch.cat((img, alpha), 1)

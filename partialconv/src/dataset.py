@@ -72,14 +72,14 @@ class CostmapDataset(Dataset):
         groundtruth = np.expand_dims(groundtruth, axis=0)
 
         ####  Set Alpha ######
-        # if not self.validation:
-        # create random image of alphas
-        alpha = np.random.normal(0,1,(1,self.config.img_size, self.config.img_size))
-        alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
-        alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
-        alpha = alpha * 0.98 + 0.01 # prevent 0 and 1 for numeric stability
-        # else:
-            # alpha = np.random.ones((1, self.config.img_size, self.config.img_size)) * self.config.alpha_test_val
+        if not self.validation and self.config.use_cvar_loss:
+            # create random image of alphas
+            alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))
+            alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
+            alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
+            alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
+        else:
+            alpha = np.ones((1, self.config.img_size, self.config.img_size)) * self.config.alpha_test_val
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
