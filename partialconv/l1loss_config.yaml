@@ -1,8 +1,6 @@
 ### EXECUTION SETTING ###
 # The using GPU ID
 cuda_id: 0
-# whether you use comet-ml for visualizing the training procedure
-comet: False
 # The Running mode (train or test)
 mode: train
 # fine-tuning specify the ckpt dir name you want to load the model params.
@@ -21,8 +19,6 @@ train_test_split: 1.0
 train_val_split: 0.9
 
 ### DATA AUGMENTATION ###
-# the mask augmentaiton flag
-mask_augment: False
 
 ### NETWORK SETTING ###
 in_channels: 9

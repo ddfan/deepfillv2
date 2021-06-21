@@ -48,7 +48,14 @@ class CostmapDataset(Dataset):
     def __len__(self):
         return len(self.imglist)
     
-    def __getitem__(self, index):
+    def __getitem__(self, index_tuple):
+        if isinstance(index_tuple, int):
+            index = index_tuple
+            use_alpha_decay = False
+        elif isinstance(index_tuple, tuple):
+            index = index_tuple[0]
+            use_alpha_decay = index_tuple[1]
+
         datafilepath = self.imglist[index]
         data = np.load(datafilepath)
 
@@ -72,10 +79,15 @@ class CostmapDataset(Dataset):
         groundtruth = np.expand_dims(groundtruth, axis=0)
 
         ####  Set Alpha ######
-        # create random image of alphas
-        alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))
-        alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
-        alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
+        if use_alpha_decay:
+            # create decaying alpha from robot position
+            alpha = np.exp(-data['robot_distance'] / self.config.alpha_scale_by_distance)
+        else:
+            # create random image of alphas
+            alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))
+            alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
+            alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
+
         alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######

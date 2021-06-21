@@ -1,8 +1,6 @@
 ### EXECUTION SETTING ###
 # The using GPU ID
 cuda_id: 0
-# whether you use comet-ml for visualizing the training procedure
-comet: False
 # The Running mode (train or test)
 mode: train
 # fine-tuning specify the ckpt dir name you want to load the model params.
@@ -21,8 +19,6 @@ train_test_split: 1.0
 train_val_split: 0.9
 
 ### DATA AUGMENTATION ###
-# the mask augmentaiton flag
-mask_augment: False
 alpha_random_variance: 15.0
 
 ### NETWORK SETTING ###
@@ -35,16 +31,16 @@ use_cvar_less_var: True
 
 ### LOSS PARAMETERS ###
 use_cvar_loss: True
-loss_huber: 0.2
+loss_huber: 0.1
 var_coef: 1.0
 cvar_coef: 1.0
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
-initial_lr: 0.0005
-finetune_lr: 0.001
+initial_lr: 0.0002
+finetune_lr: 0.0005
 momentum: 0
-weight_decay: 0
+weight_decay: 1.0e-6
 
 ### LOG INTERVALS ###
 # viaulizing the output images
@@ -54,7 +50,8 @@ save_model_loss: total
 # printing the losses to standard output line
 print_step_losses: False
 show_progress_bar: True
-alpha_test_val: [0.01,0.5,0.9,0.99]
+alpha_test_val: [0.1,0.5,0.9]
+alpha_scale_by_distance: 20.0
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset

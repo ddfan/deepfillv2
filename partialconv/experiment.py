@@ -32,9 +32,6 @@ def main(args):
     # config.output_layer = "risk_ground_truth"
     config.output_layer = "risk"
 
-    dataset_val = CostmapDataset(config, validation=True)
-    dataset_val.clean_data()
-
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
     print("Check Point is '{}'".format(config.ckpt))
 
@@ -54,7 +51,8 @@ def main(args):
     # print("Loading the Validation Dataset...")
     dataset_val = CostmapDataset(config, validation=True)
     print("Validating on " + str(len(dataset_val)) + " datapoints.")
-    
+    dataset_val.clean_data()
+
     # Set the configuration for training
     if config.mode == "train":
         # Define the CostmapDataset Dataset and Data Loader
