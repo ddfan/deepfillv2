@@ -23,7 +23,6 @@ train_val_split: 0.9
 ### DATA AUGMENTATION ###
 # the mask augmentaiton flag
 mask_augment: False
-alpha_test_val: 1.0
 
 ### NETWORK SETTING ###
 in_channels: 9

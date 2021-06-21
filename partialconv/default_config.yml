@@ -24,7 +24,6 @@ train_val_split: 0.9
 # the mask augmentaiton flag
 mask_augment: False
 alpha_random_variance: 15.0
-alpha_test_val: 0.9
 
 ### NETWORK SETTING ###
 in_channels: 9
@@ -55,6 +54,7 @@ save_model_loss: total
 # printing the losses to standard output line
 print_step_losses: False
 show_progress_bar: True
+alpha_test_val: [0.01,0.5,0.9,0.99]
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset

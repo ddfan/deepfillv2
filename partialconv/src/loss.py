@@ -24,7 +24,7 @@ class CvarLoss(nn.Module):
         else:
             cvar = var_and_cvar[:, 1, :, :]
 
-        var_loss = self.var_huber_loss(gt, var, alpha)
+        var_loss = torch.mean(self.var_huber_loss(gt, var, alpha) * mask)
         var_error = self.var_error(gt, var, alpha)
         cvar_loss = self.l1(mask * cvar, mask * var_error.detach())
 
@@ -54,7 +54,6 @@ class CvarLoss(nn.Module):
         result += case_less.float() * huber_less
         result += case_else.float() * no_huber
 
-        result = torch.mean(result)
         return result
 
 class InpaintingLoss(nn.Module):
