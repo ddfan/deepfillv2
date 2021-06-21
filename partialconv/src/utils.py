@@ -88,7 +88,9 @@ def save_ckpt(ckpt_name, models, optimizers, n_iter, config):
     net_tmp.load_state_dict(ckpt_dict["model"], strict=False)
     example_in = torch.ones((1, config.in_channels, config.img_size, config.img_size)).to('cpu')
     example_mask = torch.ones((1, 1, config.img_size, config.img_size)).to('cpu')
-    torchscript_module = torch.jit.trace(net_tmp, (example_in, example_mask))
+    example_alpha = torch.ones((1, 1, config.img_size, config.img_size)).to('cpu')
+
+    torchscript_module = torch.jit.trace(net_tmp, (example_in, example_mask, example_alpha))
     torch.jit.save(torchscript_module, ckpt_name + ".pt")
 
 def load_ckpt(ckpt_name, models, optimizers=None):

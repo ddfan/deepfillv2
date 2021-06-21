@@ -23,22 +23,21 @@ train_val_split: 0.9
 ### DATA AUGMENTATION ###
 # the mask augmentaiton flag
 mask_augment: False
+alpha_random_variance: 15.0
+alpha_test_val: 0.9
 
 ### NETWORK SETTING ###
 in_channels: 9
-out_channels: 1
+out_channels: 2
 img_size: 400
 # UNet layer size
 layer_size: 4
 
 ### LOSS PARAMETERS ###
-valid_coef: 1.0
-hole_coef: 0.0
-tv_coef: 0.0
-perc_coef: 0.0
-style_coef: 0.0
-# total variation calcuration method (mean or sum)
-tv_loss: mean
+use_cvar_loss: True
+loss_huber: 0.2
+var_coef: 1.0
+cvar_coef: 1.0
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam

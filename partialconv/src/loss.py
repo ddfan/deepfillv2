@@ -3,6 +3,56 @@ import torch.nn as nn
 from torchvision import models
 
 
+class CvarLoss(nn.Module):
+    def __init__(self, config):
+        super(CvarLoss, self).__init__()
+        self.l1 = nn.L1Loss()
+        self.img_size = config.img_size
+        self.loss_huber = config.loss_huber
+
+    def forward(self, input, mask, output, gt, alpha=None):
+        mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
+        gt = torch.reshape(gt, (-1, 1, self.img_size, self.img_size))
+        alpha = torch.reshape(alpha, (-1, 1, self.img_size, self.img_size))
+        var_and_cvar = torch.reshape(output, (-1, 2, self.img_size, self.img_size))
+
+        var = var_and_cvar[:,0,:,:]
+        cvar_less_var = var_and_cvar[:,1,:,:]
+        cvar = cvar_less_var + var.detach()
+
+        var_loss = self.var_huber_loss(gt, var, alpha)
+        var_error = self.var_error(gt, var, alpha)
+        cvar_loss = self.l1(mask * cvar, mask * var_error.detach())
+
+        return {'var': var_loss,
+                'cvar': cvar_loss}
+
+    def var_error(self, gt, var, alpha):
+        return torch.clamp(gt - var, min=0.0) / (1.0 - alpha) + var
+
+    def var_huber_loss(self, gt, var, alpha):
+        # compute quantile loss (with custom huber smoothing)
+        huber_greater = gt + 0.5 / self.loss_huber * torch.square(gt - var) + 0.5 * self.loss_huber
+        huber_less = gt + 0.5 / self.loss_huber * torch.square((gt - var) * alpha / (1.0 - alpha)) + 0.5 * self.loss_huber
+        no_huber = var + torch.clamp(gt - var, min=0.0) / (1.0 - alpha)
+
+        var_geq_cost = torch.ge(var, gt)
+        var_leq_cost = torch.lt(var, gt)
+
+        huber_greater_comp = torch.lt(var, gt + self.loss_huber)
+        huber_less_comp = torch.gt(var, gt - (1.0 - alpha) / alpha * self.loss_huber)
+
+        case_greater = torch.logical_and(var_geq_cost, huber_greater_comp)
+        case_less = torch.logical_and(var_leq_cost, huber_less_comp)
+        case_else = torch.logical_not(torch.logical_or(case_greater, case_less))
+
+        result = case_greater.float() * huber_greater
+        result += case_less.float() * huber_less
+        result += case_else.float() * no_huber
+
+        result = torch.mean(result)
+        return result
+
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):
         super(InpaintingLoss, self).__init__()
@@ -11,7 +61,7 @@ class InpaintingLoss(nn.Module):
         # default extractor is VGG16
         self.extractor = extractor
 
-    def forward(self, input, mask, output, gt):
+    def forward(self, input, mask, output, gt, alpha=None):
         # Non-hole pixels directly set to ground truth
         if self.tv_loss is not None or self.extractor is not None:
             comp = mask * input + (1 - mask) * output

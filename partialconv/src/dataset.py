@@ -10,8 +10,9 @@ import numpy as np
 import cv2
 from PIL import Image
 from .utils import get_jpgs
+from scipy.ndimage.filters import gaussian_filter
 
-class InpaintDataset(Dataset):
+class CostmapDataset(Dataset):
     def __init__(self, config, validation=False, test=False):
         self.config = config
         self.validation = validation
@@ -70,21 +71,31 @@ class InpaintDataset(Dataset):
         mask = np.expand_dims(mask, axis=0)
         groundtruth = np.expand_dims(groundtruth, axis=0)
 
+        ####  Set Alpha ######
+        # if not self.validation:
+        # create random image of alphas
+        alpha = np.random.normal(0,1,(1,self.config.img_size, self.config.img_size))
+        alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
+        alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
+        alpha = alpha * 0.98 + 0.01 # prevent 0 and 1 for numeric stability
+        # else:
+            # alpha = np.random.ones((1, self.config.img_size, self.config.img_size)) * self.config.alpha_test_val
+
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
         if not self.validation:
-            img_mask_gt = np.concatenate([input_img, mask, groundtruth], axis=0)
+            img_mask_gt = np.concatenate([input_img, mask, groundtruth, alpha], axis=0)
             img_mask_gt = torch.from_numpy(img_mask_gt.astype(np.float32)).contiguous()
             img_mask_gt_tf = self.img_transform(img_mask_gt)
             input_img = img_mask_gt_tf[:n_layers,:,:]
             mask = img_mask_gt_tf[n_layers:n_layers+1,:,:]
             groundtruth = img_mask_gt_tf[n_layers+1:n_layers+2,:,:]
-
-        else:        
+            alpha = img_mask_gt_tf[n_layers+2:n_layers+3,:,:]
+        else:
             input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
             mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
             groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
-
+            alpha = torch.from_numpy(alpha.astype(np.float32)).contiguous()
 
         #####################################
 
@@ -105,8 +116,9 @@ class InpaintDataset(Dataset):
         input_img = torch.flatten(input_img, start_dim=0)
         mask = torch.flatten(mask, start_dim=0)
         groundtruth = torch.flatten(groundtruth, start_dim=0)
+        alpha = torch.flatten(alpha, start_dim=0)        
 
-        return input_img, mask, groundtruth
+        return input_img, mask, groundtruth, alpha
 
     def clean_data(self):
         for filename in self.imglist:

@@ -125,10 +125,17 @@ class PConvUNet(nn.Module):
         super().__init__()
         self.freeze_enc_bn = True if config.finetune else False
         self.layer_size = config.layer_size
-        self.in_channels = config.in_channels
+        if config.use_cvar_loss:
+            self.img_channels = config.in_channels
+            self.in_channels = config.in_channels + 1
+        else:
+            self.img_channels = config.in_channels
+            self.in_channels = config.in_channels
+        
         self.out_channels = config.out_channels
         self.img_size = config.img_size
         self.map_layers = config.input_map_layers
+        self.use_cvar_loss = config.use_cvar_loss
         self.print_sizes = False
         n_feat = 256
 
@@ -151,10 +158,14 @@ class PConvUNet(nn.Module):
         self.dec_1 = PConvActiv(64 + self.in_channels, self.out_channels, dec=True, bn=False,
                                 active=None, conv_bias=True)
 
-    def forward(self, img, mask):
+    def forward(self, img, mask, alpha=None):
         # reshape from flat to proper
-        img = torch.reshape(img, (-1, self.in_channels, self.img_size, self.img_size))
+        img = torch.reshape(img, (-1, self.img_channels, self.img_size, self.img_size))
         mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
+        if alpha is not None:
+            alpha = torch.reshape(alpha, (-1, 1, self.img_size, self.img_size))
+            # append alpha channel to img
+            img = torch.cat((img, alpha), 1)
 
         # normalize image
         img = self.normalize_img(img, mask)

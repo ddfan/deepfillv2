@@ -4,9 +4,9 @@ import argparse
 import torch
 from torchvision import transforms
 
-from src.dataset import InpaintDataset
+from src.dataset import CostmapDataset
 from src.model import PConvUNet
-from src.loss import InpaintingLoss, VGG16FeatureExtractor
+from src.loss import InpaintingLoss, CvarLoss
 from src.train import Trainer
 from src.utils import Config, load_ckpt, create_ckpt_dir
 
@@ -32,8 +32,7 @@ def main(args):
     # config.output_layer = "risk_ground_truth"
     config.output_layer = "risk"
 
-
-    dataset_val = InpaintDataset(config, validation=True)
+    dataset_val = CostmapDataset(config, validation=True)
     dataset_val.clean_data()
 
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
@@ -53,21 +52,24 @@ def main(args):
     print("Model has {} parameters".format(count_parameters(model)))
 
     # print("Loading the Validation Dataset...")
-    dataset_val = InpaintDataset(config, validation=True)
+    dataset_val = CostmapDataset(config, validation=True)
     print("Validating on " + str(len(dataset_val)) + " datapoints.")
     
     # Set the configuration for training
     if config.mode == "train":
-        # Define the InpaintDataset Dataset and Data Loader
+        # Define the CostmapDataset Dataset and Data Loader
         # print("Loading the Training Dataset...")
-        dataset_train = InpaintDataset(config)
+        dataset_train = CostmapDataset(config)
         dataset_train.clean_data()
         print("Training on " + str(len(dataset_train)) + " datapoints.")
 
         # Define the Loss fucntion
         # criterion = InpaintingLoss(VGG16FeatureExtractor(),
         #                            tv_loss=config.tv_loss).to(device)
-        criterion = InpaintingLoss().to(device)
+        if config.use_cvar_loss:
+            criterion = CvarLoss(config).to(device)
+        else:
+            criterion = InpaintingLoss().to(device)
 
         # Define the Optimizer
         lr = config.finetune_lr if config.finetune else config.initial_lr

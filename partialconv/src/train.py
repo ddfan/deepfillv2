@@ -41,8 +41,8 @@ class Trainer(object):
 
             # train network    
             train_loss_dict = {}
-            for step, (input, mask, gt) in enumerate(dataloader):
-                loss_dict = self.evaluate(input, mask, gt, add_graph=first_iteration) 
+            for step, (input, mask, gt, alpha) in enumerate(dataloader):
+                loss_dict = self.evaluate(input, mask, gt, alpha=alpha, add_graph=first_iteration) 
                 train_loss_dict = self.accumulate_loss(train_loss_dict, loss_dict, len(dataloader))               
 
                 # report the training loss
@@ -57,8 +57,8 @@ class Trainer(object):
 
             # determine validation loss
             val_loss_dict = {}
-            for step, (input, mask, gt) in enumerate(self.dataloader_val):
-                loss_dict = self.evaluate(input, mask, gt, train=False)
+            for step, (input, mask, gt, alpha) in enumerate(self.dataloader_val):
+                loss_dict = self.evaluate(input, mask, gt, alpha=alpha, train=False)
                 val_loss_dict = self.accumulate_loss(val_loss_dict, loss_dict, len(self.dataloader_val))
 
             self.write_losses(val_loss_dict, self.epoch, "val")
@@ -83,7 +83,7 @@ class Trainer(object):
                 
             self.epoch += 1
 
-    def evaluate(self, input, mask, gt, train=True, add_graph=False):
+    def evaluate(self, input, mask, gt, alpha=None, train=True, add_graph=False):
         if train:
             # set the model to training mode
             self.model.train()
@@ -95,10 +95,12 @@ class Trainer(object):
         input = input.to(self.device)
         mask = mask.to(self.device)
         gt = gt.to(self.device)
+        if alpha is not None:
+            alpha = alpha.to(self.device)
 
         # model forward
-        output = self.model(input, mask)
-        loss_dict = self.criterion(input, mask, output, gt)
+        output = self.model(input, mask, alpha)
+        loss_dict = self.criterion(input, mask, output, gt, alpha)
         loss = 0.0
         for key, val in loss_dict.items():
             coef = getattr(self.config, '{}_coef'.format(key))
@@ -111,32 +113,39 @@ class Trainer(object):
             self.optimizer.step()
 
         if add_graph:
-            self.val_writer.add_graph(self.model, (input, mask))
+            self.val_writer.add_graph(self.model, (input, mask, alpha))
 
         loss_dict['total'] = loss
         return to_items(loss_dict)
 
     def visualize(self, dataset, filename=None, epoch=0):
         self.model.eval()
-        image, mask, gt = zip(*[dataset[i] for i in range(min(len(dataset), self.config.num_vis_imgs))])
+        image, mask, gt, alpha = zip(*[dataset[i] for i in range(min(len(dataset), self.config.num_vis_imgs))])
         image = torch.stack(image)
         mask = torch.stack(mask)
         gt = torch.stack(gt)
+        alpha = torch.stack(alpha)
+
         with torch.no_grad():
-            output = self.model(image.to(self.device), mask.to(self.device))
+            output = self.model(image.to(self.device), mask.to(self.device), alpha.to(self.device))
         output = output.to(torch.device('cpu'))
 
         # unflatten images
         image = torch.reshape(image, (-1, self.config.in_channels, self.config.img_size, self.config.img_size))
         mask = torch.reshape(mask, (-1, 1, self.config.img_size, self.config.img_size))
         output = torch.reshape(output, (-1, self.config.out_channels, self.config.img_size, self.config.img_size))
-        gt = torch.reshape(gt, (-1, self.config.out_channels, self.config.img_size, self.config.img_size))
+        gt = torch.reshape(gt, (-1, 1, self.config.img_size, self.config.img_size))
 
-        # output_comp = mask * image + (1 - mask) * output
-        # grid = make_grid(torch.cat([image, mask, output, output_comp, gt], dim=0))
-        idx = self.config.input_map_layers.index("obstacle_occupancy")
-        mae = torch.abs((gt - output) * mask)
-        grid = make_grid(torch.cat([image[:, idx:idx + 1, :, :], output * mask, gt, mae], dim=0), scale_each=True)
+        if self.config.use_cvar_loss:
+            # output_comp = mask * image + (1 - mask) * output
+            idx = self.config.input_map_layers.index("obstacle_occupancy")
+            var = output[:,0:1,:,:]
+            cvar = output[:,1:2,:,:]
+            grid = make_grid(torch.cat([image[:, idx:idx + 1, :, :], gt, var, cvar], dim=0), scale_each=True)
+        else:
+            idx = self.config.input_map_layers.index("obstacle_occupancy")
+            mae = torch.abs((gt - output) * mask)
+            grid = make_grid(torch.cat([image[:, idx:idx + 1, :, :], output, gt, mae], dim=0), scale_each=True)
 
         self.val_writer.add_image('images', grid, epoch)
         
@@ -144,12 +153,8 @@ class Trainer(object):
             save_image(grid, filename)
         
     def report(self, epoch, step, loss_dict):
-        print('[EPOCH: {:>6}, STEP: {:>6}] | Valid Loss: {:.6f} | Hole Loss: {:.6f}'
-              '| TV Loss: {:.6f} | Perc Loss: {:.6f}'
-              '| Style Loss: {:.6f} | Total Loss: {:.6f}'.format(epoch,
-                        step, loss_dict['valid'], loss_dict['hole'],
-                        loss_dict['tv'], loss_dict['perc'],
-                        loss_dict['style'], loss_dict['total']))
+        print('[EPOCH: {}, step: {}] | '.format(epoch, step) +
+            " | ".join(key + ': {:.6f}'.format(val) for key, val in loss_dict.items()))
 
     def accumulate_loss(self, acc_dict, loss_dict, n_data):
         # accumulate the loss
