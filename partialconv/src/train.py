@@ -189,8 +189,8 @@ class Trainer(object):
             else:
                 var = outputs[i][:, 0:1, :, :]
                 cvar = outputs[i][:, 1:2, :, :]
-            vars.append(var)
-            cvars.append(cvar)
+            vars.append(var * mask)
+            cvars.append(cvar * mask)
         vars = torch.cat(vars, dim=1)
         cvars = torch.cat(cvars, dim=1)
 
@@ -200,7 +200,7 @@ class Trainer(object):
             varying_cvar = outputs[-1][:,0:1, :, :] + outputs[-1][:, 1:2, :, :]
         else:
             varying_cvar = outputs[-1][:,1:2, :, :]
-        img_arr = torch.cat([ gt, vars, cvars, varying_cvar], dim=1)
+        img_arr = torch.cat([ gt, vars, cvars, varying_cvar * mask], dim=1)
 
         # create matplotlib figure
         img_arr_np = img_arr.cpu().detach().numpy()
