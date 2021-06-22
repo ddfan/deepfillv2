@@ -86,7 +86,7 @@ def main(args):
         start_epoch = 0
         if config.resume:
             print("Loading the trained params and the state of optimizer...")
-            start_epoch = load_ckpt(config.resume,
+            start_epoch = load_ckpt(config.resume_dir,
                                    [("model", model)],
                                    [("optimizer", optimizer)])
             for param_group in optimizer.param_groups:
@@ -99,10 +99,16 @@ def main(args):
 
     # Set the configuration for testing
     elif config.mode == "test":
-        pass
-        # <model load the trained weights>
-        # evaluate(model, dataset_val)
+        dataset_test = CostmapDataset(config, test=True)
+        print("Testing on " + str(len(dataset_test)) + " datapoints.")
+        dataset_test.clean_data()
+        criterion = CvarStats(config).to(device)
 
+        start_epoch = load_ckpt(config.resume_dir,
+                                   [("model", model)],
+                                   [("optimizer", optimizer)])
+        tester = Tester(start_epoch, config, device, model, dataset_test, criterion)
+        tester.iterate()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Specify the inputs")

@@ -8,6 +8,7 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
+resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0622_1343_52/models/model_0013.pth
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
@@ -50,6 +51,7 @@ weight_decay: 0
 num_vis_imgs: 8
 # saving the model, check if this validation loss has improved
 save_model_loss: total
+save_model_interval: 10
 # printing the losses to standard output line
 print_step_losses: False
 show_progress_bar: True
