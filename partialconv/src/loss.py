@@ -18,7 +18,8 @@ class CvarLoss(nn.Module):
         gt = torch.reshape(gt, (-1, 1, self.img_size, self.img_size))
         alpha = torch.reshape(alpha, (-1, 1, self.img_size, self.img_size))
         var_and_cvar = torch.reshape(output, (-1, 2, self.img_size, self.img_size))
-
+        if output_alpha_plus is not None:
+            output_alpha_plus = torch.reshape(output_alpha_plus, (-1, 2, self.img_size, self.img_size))
         var = var_and_cvar[:,0,:,:]
         if self.use_cvar_less_var:
             cvar_less_var = var_and_cvar[:, 1, :, :]
@@ -34,8 +35,16 @@ class CvarLoss(nn.Module):
                      'cvar': cvar_loss}
 
         if self.use_monotonic_loss:
-            loss_dict['mono'] = self.monotonic_loss(output_alpha_plus, output)
+            monotonic_loss = 0.0
+            var_alpha_plus = output_alpha_plus[:,0,:,:]
+            monotonic_loss += self.monotonic_loss(var_alpha_plus, var)
+            if self.use_cvar_less_var:
+                cvar_alpha_plus = output_alpha_plus[:,0,:,:] + output_alpha_plus[:,1,:,:]
+            else:
+                cvar_alpha_plus = output_alpha_plus[:,1,:,:]
+            monotonic_loss += self.monotonic_loss(cvar_alpha_plus, cvar)
 
+            loss_dict['mono'] = monotonic_loss
         return loss_dict
 
     def var_error(self, gt, var, alpha):
@@ -63,9 +72,9 @@ class CvarLoss(nn.Module):
 
         return result
 
-    def monotonic_loss(self, output_alpha_plus, output):
-        output_diff = torch.clamp(output_alpha_plus - output, max=0.0) / self.monotonic_loss_delta
-        return output_diff.abs().mean()
+    def monotonic_loss(self, val_alpha_plus, val):
+        diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
+        return diff.abs().mean()
 
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):
