@@ -36,7 +36,7 @@ monotonic_loss_delta: 0.001
 loss_huber: 0.1
 var_coef: 1.0
 cvar_coef: 1.0
-mono_coef: 1000.0
+mono_coef: 1.0
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
