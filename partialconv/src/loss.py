@@ -74,7 +74,8 @@ class CvarLoss(nn.Module):
 
     def monotonic_loss(self, val_alpha_plus, val):
         diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
-        return diff.abs().mean()
+        smoothed_mae = torch.exp(diff) - diff - 1.0
+        return smoothed_mae.mean()
 
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):

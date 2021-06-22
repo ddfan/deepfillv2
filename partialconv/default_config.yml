@@ -36,14 +36,14 @@ monotonic_loss_delta: 0.001
 loss_huber: 0.1
 var_coef: 1.0
 cvar_coef: 1.0
-mono_coef: 1.0
+mono_coef: 0.01
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
 initial_lr: 0.0002
 finetune_lr: 0.0005
 momentum: 0
-weight_decay: 1.0e-6
+weight_decay: 0
 
 ### LOG INTERVALS ###
 # viaulizing the output images
