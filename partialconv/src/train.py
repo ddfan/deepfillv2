@@ -107,7 +107,15 @@ class Trainer(object):
 
         # model forward
         output = self.model(input, mask, alpha)
-        loss_dict = self.criterion(input, mask, output, gt, alpha)
+
+        # numerical differentiation
+        if self.config.use_monotonic_loss:
+            with torch.no_grad():
+                output_alpha_plus = self.model(input, mask, alpha + self.config.monotonic_loss_delta)
+        else:
+            output_alpha_plus = None
+
+        loss_dict = self.criterion(input, mask, output, gt, alpha, output_alpha_plus)
         loss = 0.0
         for key, val in loss_dict.items():
             coef = getattr(self.config, '{}_coef'.format(key))

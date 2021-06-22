@@ -10,8 +10,9 @@ class CvarLoss(nn.Module):
         self.img_size = config.img_size
         self.loss_huber = config.loss_huber
         self.use_cvar_less_var = config.use_cvar_less_var
+        self.use_monotonic_loss = config.use_monotonic_loss
 
-    def forward(self, input, mask, output, gt, alpha=None):
+    def forward(self, input, mask, output, gt, alpha=None, output_alpha_plus=None):
         mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
         gt = torch.reshape(gt, (-1, 1, self.img_size, self.img_size))
         alpha = torch.reshape(alpha, (-1, 1, self.img_size, self.img_size))
@@ -28,8 +29,13 @@ class CvarLoss(nn.Module):
         var_error = self.var_error(gt, var, alpha)
         cvar_loss = self.l1(mask * cvar, mask * var_error.detach())
 
-        return {'var': var_loss,
-                'cvar': cvar_loss}
+        loss_dict = {'var': var_loss,
+                     'cvar': cvar_loss}
+
+        if self.use_monotonic_loss:
+            loss_dict['mono'] = self.monotonic_loss(output_alpha_plus, output)
+
+        return loss_dict
 
     def var_error(self, gt, var, alpha):
         return torch.clamp(gt - var, min=0.0) / (1.0 - alpha) + var
@@ -55,6 +61,10 @@ class CvarLoss(nn.Module):
         result += case_else.float() * no_huber
 
         return result
+
+    def monotonic_loss(self, output_alpha_plus, output):
+        output_diff = torch.clamp(output_alpha_plus - output, max=0.0)
+        return output_diff.abs().mean()
 
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):
