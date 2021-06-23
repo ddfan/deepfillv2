@@ -156,7 +156,7 @@ class PConvUNet(nn.Module):
         self.dec_3 = PConvActiv(256 + 128, 128, dec=True, active='leaky')
         self.dec_2 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
         self.dec_1 = PConvActiv(64 + self.in_channels, self.out_channels, dec=True, bn=False,
-                                active=None, conv_bias=True)
+                                active='leaky', conv_bias=True)
 
     def forward(self, img, mask, alpha=None):
         # reshape from flat to proper
@@ -197,8 +197,6 @@ class PConvUNet(nn.Module):
                     feature, update_mask, enc_f.pop(), enc_m.pop())
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
-
-        feature = feature.abs()
 
         # flatten output
         feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))
