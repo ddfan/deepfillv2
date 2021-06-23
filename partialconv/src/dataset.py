@@ -82,6 +82,7 @@ class CostmapDataset(Dataset):
         if use_alpha_decay:
             # create decaying alpha from robot position
             alpha = np.exp(-data['robot_distance'] / self.config.alpha_scale_by_distance)
+            alpha = np.expand_dims(alpha, axis=0)
         else:
             # create random image of alphas
             alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))

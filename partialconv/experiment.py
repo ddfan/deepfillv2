@@ -9,6 +9,7 @@ from src.model import PConvUNet
 from src.loss import InpaintingLoss, CvarLoss
 from src.train import Trainer
 from src.utils import Config, load_ckpt, create_ckpt_dir
+from src.test import Tester
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -102,12 +103,10 @@ def main(args):
         dataset_test = CostmapDataset(config, test=True)
         print("Testing on " + str(len(dataset_test)) + " datapoints.")
         dataset_test.clean_data()
-        criterion = CvarStats(config).to(device)
 
         start_epoch = load_ckpt(config.resume_dir,
-                                   [("model", model)],
-                                   [("optimizer", optimizer)])
-        tester = Tester(start_epoch, config, device, model, dataset_test, criterion)
+                                   [("model", model)])
+        tester = Tester(config, device, model, dataset_test)
         tester.iterate()
 
 if __name__ == "__main__":
