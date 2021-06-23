@@ -8,7 +8,7 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
-resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0622_1343_52/models/model_0013.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/models/cvar_mono_model_0057.pth
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
@@ -56,6 +56,7 @@ save_model_interval: 10
 print_step_losses: False
 show_progress_bar: True
 alpha_test_val: [0.1,0.5,0.9]
+# alpha_test_val: [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.99]
 alpha_scale_by_distance: 20.0
 
 ### DIRECTORY PATH ###

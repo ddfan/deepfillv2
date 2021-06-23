@@ -93,7 +93,12 @@ class CostmapDataset(Dataset):
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
-        if not self.validation:
+        if self.validation or self.test:
+            input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
+            mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
+            groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
+            alpha = torch.from_numpy(alpha.astype(np.float32)).contiguous()
+        else:
             img_mask_gt = np.concatenate([input_img, mask, groundtruth, alpha], axis=0)
             img_mask_gt = torch.from_numpy(img_mask_gt.astype(np.float32)).contiguous()
             img_mask_gt_tf = self.img_transform(img_mask_gt)
@@ -101,11 +106,6 @@ class CostmapDataset(Dataset):
             mask = img_mask_gt_tf[n_layers:n_layers+1,:,:]
             groundtruth = img_mask_gt_tf[n_layers+1:n_layers+2,:,:]
             alpha = img_mask_gt_tf[n_layers+2:n_layers+3,:,:]
-        else:
-            input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
-            mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
-            groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
-            alpha = torch.from_numpy(alpha.astype(np.float32)).contiguous()
 
         #####################################
 

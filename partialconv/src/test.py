@@ -17,49 +17,54 @@ class Tester(object):
         self.test_writer = SummaryWriter(self.config.ckpt + "/test", flush_secs=1)
 
     def iterate(self):
-        print('Start the testing...')
-        first_iteration = True
-
+        
         # save visualization
+        print('Saving plots...')
         if self.config.use_cvar_loss:
             visualize_cvar(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
         else:
             visualize_l1loss(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
 
         # compute statistics
+        print('Computing statistics...')
         self.compute_statistics_cvar(self.model, self.config, self.test_writer, self.device, self.dataset_test)
 
     def compute_statistics_cvar(self, model, config, writer, device, dataset):
         model.eval()
-        for i in range(len(dataset)):
-            inputs, mask, gt, alpha = dataset[i, True] 
-            
-            outputs = []
-            for alpha_val in config.alpha_test_val:
+
+        dataloader = DataLoader(dataset,
+                               batch_size=config.batch_size,
+                               shuffle=False)
+        if self.config.show_progress_bar:
+            dataloader = tqdm(dataloader, file=sys.stdout)
+
+        # compute statistics for var and cvar estimates
+        n_samples = torch.zeros(len(config.alpha_test_val)).to(device)
+        n_gt_less_than_var = torch.zeros(len(config.alpha_test_val)).to(device)
+        
+        for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
+            inputs = inputs.to(device)
+            mask = mask.to(device)
+            gt = gt.to(device)
+            alpha = alpha.to(device)            
+            mask_unflat = torch.reshape(mask, (-1, 1, config.img_size, config.img_size))                
+            gt_unflat = torch.reshape(gt, (-1, 1, config.img_size, config.img_size))
+
+            for i, alpha_val in enumerate(config.alpha_test_val):
                 alpha_test = torch.ones_like(alpha) * alpha_val
-                output = model(inputs.to(device), mask.to(device), alpha_test.to(device))
-                output = output.to(torch.device('cpu'))
+                output = model(inputs, mask, alpha_test)
                 output = torch.reshape(output, (-1, config.out_channels, config.img_size, config.img_size))
-                outputs.append(output)
 
-            # unflatten images
-            inputs = torch.reshape(inputs, (-1, config.in_channels, config.img_size, config.img_size))
-            mask = torch.reshape(mask, (-1, 1, config.img_size, config.img_size))
-            gt = torch.reshape(gt, (-1, 1, config.img_size, config.img_size))
-
-            # assemble var and cvar images
-            vars = []
-            cvars = []
-            for i in range(len(config.alpha_test_val)):
                 if config.use_cvar_less_var:
-                    var = outputs[i][:, 1:2, :, :]
-                    cvar = outputs[i][:, 0:1, :, :] + outputs[i][:, 1:2, :, :]
+                    var = output[:,0:1, :, :]
+                    cvar = output[:,0:1, :, :] + output[:,1:2, :, :]
                 else:
-                    var = outputs[i][:, 0:1, :, :]
-                    cvar = outputs[i][:, 1:2, :, :]
-                vars.append(var * mask)
-                cvars.append(cvar * mask)
-            vars = torch.cat(vars, dim=1)
-            cvars = torch.cat(cvars, dim=1)
+                    var = output[:,0:1, :, :]
+                    cvar = output[:,1:2, :, :]
 
-            print(vars.size())
+                n_samples[i] += torch.sum(mask_unflat)
+                n_gt_less_than_var[i] += torch.sum(mask_unflat * torch.lt(gt_unflat, var)) 
+
+            print(n_gt_less_than_var / n_samples)
+        alpha_implied = n_gt_less_than_var / n_samples
+        # alpha_implied_confidence =
