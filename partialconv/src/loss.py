@@ -27,9 +27,9 @@ class CvarLoss(nn.Module):
         else:
             cvar = var_and_cvar[:, 1, :, :]
 
-        var_loss = torch.mean(self.var_huber_loss(gt, var, alpha) * mask)
-        var_error = self.var_error(gt, var, alpha)
-        cvar_loss = self.l1(mask * cvar, mask * var_error.detach())
+        var_loss = self.var_huber_loss(gt, var, alpha, mask)
+        cvar_calc = self.cvar_calc(gt, var, alpha)
+        cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach())
 
         loss_dict = {'var': var_loss,
                      'cvar': cvar_loss}
@@ -37,20 +37,41 @@ class CvarLoss(nn.Module):
         if self.use_monotonic_loss:
             monotonic_loss = 0.0
             var_alpha_plus = output_alpha_plus[:,0,:,:]
-            monotonic_loss += self.monotonic_loss(var_alpha_plus, var)
+            monotonic_loss += self.monotonic_loss(var_alpha_plus, var, mask)
             if self.use_cvar_less_var:
                 cvar_alpha_plus = output_alpha_plus[:,0,:,:] + output_alpha_plus[:,1,:,:]
             else:
                 cvar_alpha_plus = output_alpha_plus[:,1,:,:]
-            monotonic_loss += self.monotonic_loss(cvar_alpha_plus, cvar)
+            monotonic_loss += self.monotonic_loss(cvar_alpha_plus, cvar, mask)
 
             loss_dict['mono'] = monotonic_loss
+
         return loss_dict
 
-    def var_error(self, gt, var, alpha):
+    def cvar_calc(self, gt, var, alpha):
         return torch.clamp(gt - var, min=0.0) / (1.0 - alpha) + var
 
-    def var_huber_loss(self, gt, var, alpha):
+    def var_huber_loss(self, gt, var, alpha, mask):
+        # compute quantile loss
+        err = gt - var
+        is_pos_err = torch.lt(var, gt)
+        is_neg_err = torch.ge(var, gt)
+        is_greater_huber = torch.ge(err, self.loss_huber / alpha)
+        is_less_huber = torch.le(err, -self.loss_huber / (1.0 - alpha))
+
+        loss = is_greater_huber * (torch.abs(err) * alpha)
+        loss += torch.logical_not(is_greater_huber) * is_pos_err * (0.5 / self.loss_huber * torch.square(alpha * err) + 0.5 * self.loss_huber) 
+        loss += torch.logical_not(is_less_huber) * is_neg_err * (0.5 / self.loss_huber * torch.square((1.0 - alpha) * err) + 0.5 * self.loss_huber) 
+        loss += is_less_huber * (torch.abs(err) * (1.0 - alpha))
+        
+        return torch.mean(loss * mask)
+
+    def monotonic_loss(self, val_alpha_plus, val, mask):
+        diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
+        smoothed_mae = torch.exp(diff) - diff - 1.0
+        return torch.mean(smoothed_mae * mask)
+
+    def cvar_huber_loss(self, gt, var, alpha, mask):
         # compute quantile loss (with custom huber smoothing)
         huber_greater = gt + 0.5 / self.loss_huber * torch.square(gt - var) + 0.5 * self.loss_huber
         huber_less = gt + 0.5 / self.loss_huber * torch.square((gt - var) * alpha / (1.0 - alpha)) + 0.5 * self.loss_huber
@@ -70,12 +91,7 @@ class CvarLoss(nn.Module):
         result += case_less.float() * huber_less
         result += case_else.float() * no_huber
 
-        return result
-
-    def monotonic_loss(self, val_alpha_plus, val):
-        diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
-        smoothed_mae = torch.exp(diff) - diff - 1.0
-        return smoothed_mae.mean()
+        return torch.mean(result * mask)
 
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):
