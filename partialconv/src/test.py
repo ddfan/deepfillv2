@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .vis import *
+from .utils import write_metadata
 from tqdm import tqdm
 import sys
 from torch.utils.tensorboard import SummaryWriter
@@ -16,6 +17,7 @@ class Tester(object):
         self.dataset_test = dataset_test
 
         self.test_writer = SummaryWriter(self.config.ckpt + "/test", flush_secs=1)
+        write_metadata(self.test_writer, self.config)
 
     def iterate(self):
         

@@ -1,10 +1,12 @@
 import datetime
 import os
-import torch
-
-import torch.nn as nn
+import pprint
 import oyaml as yaml
 import copy
+
+import torch
+import torch.nn as nn
+
 from src.model import PConvUNet
 
 def create_ckpt_dir(ckpt_dir_root):
@@ -17,6 +19,21 @@ def create_ckpt_dir(ckpt_dir_root):
     os.mkdir(os.path.join(ckpt_dir, "models"))
     return ckpt_dir
 
+
+def write_metadata(writer, config):
+    # determine current git commit and message
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(dir_path)
+    stream = os.popen('basename `git rev-parse --show-toplevel`')
+    writer.add_text('git repo', stream.read(), 0)
+    stream = os.popen('git show --pretty=oneline -s')
+    writer.add_text('git commit', stream.read(), 0)
+    stream = os.popen('git diff')
+    writer.add_text('git diff', '<div>' + stream.read() + '</div>', 0)
+    # write config
+    pp = pprint.PrettyPrinter(indent=4)
+    config_str = pp.pformat(config.__dict__)
+    writer.add_text('config', '<div>' + config_str + '</div>', 0)
 
 def to_items(dic):
     return dict(map(_to_item, dic.items()))

@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .vis import *
+from .utils import write_metadata
 from tqdm import tqdm
 import sys
 from torch.utils.tensorboard import SummaryWriter
@@ -26,6 +27,8 @@ class Trainer(object):
         self.optimizer = optimizer
 
         self.train_writer = SummaryWriter(self.config.ckpt + "/train", flush_secs=1)
+        write_metadata(self.train_writer, self.config)
+
         self.val_writer = SummaryWriter(self.config.ckpt + "/val", flush_secs=1)
 
     def iterate(self):

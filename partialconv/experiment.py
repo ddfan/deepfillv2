@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import argparse
 import torch
 from torchvision import transforms
@@ -23,7 +23,7 @@ def main(args):
     
     config.input_map_layers = ["num_points",
                                 "elevation",
-                                "obstacle_occupancy",
+                                # "obstacle_occupancy",
                                 "num_points_binned_0",
                                 "num_points_binned_1",
                                 "num_points_binned_2",
