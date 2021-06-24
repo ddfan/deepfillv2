@@ -49,11 +49,6 @@ def main(args):
 
     print("Model has {} parameters".format(count_parameters(model)))
 
-    # print("Loading the Validation Dataset...")
-    dataset_val = CostmapDataset(config, validation=True)
-    print("Validating on " + str(len(dataset_val)) + " datapoints.")
-    dataset_val.clean_data()
-
     # Set the configuration for training
     if config.mode == "train":
         # Define the CostmapDataset Dataset and Data Loader
@@ -61,6 +56,11 @@ def main(args):
         dataset_train = CostmapDataset(config)
         dataset_train.clean_data()
         print("Training on " + str(len(dataset_train)) + " datapoints.")
+
+        # print("Loading the Validation Dataset...")
+        dataset_val = CostmapDataset(config, validation=True)
+        print("Validating on " + str(len(dataset_val)) + " datapoints.")
+        dataset_val.clean_data()
 
         # Define the Loss fucntion
         # criterion = InpaintingLoss(VGG16FeatureExtractor(),

@@ -15,9 +15,7 @@ resume_dir: /home/david/Documents/bag_files/cvar_logs/models/cvar_mono_model_018
 max_epochs: 200000
 # the batch size
 batch_size: 4
-
-train_test_split: 1.0
-train_val_split: 0.9
+train_val_test: [0.9, 0.05, 0.05]
 
 ### DATA AUGMENTATION ###
 alpha_random_variance: 15.0
@@ -33,7 +31,7 @@ use_cvar_less_var: True
 ### LOSS PARAMETERS ###
 use_cvar_loss: True
 use_monotonic_loss: True
-monotonic_loss_delta: 0.001
+monotonic_loss_delta: 0.0001
 loss_huber: 0.1
 var_coef: 1.0
 cvar_coef: 1.0

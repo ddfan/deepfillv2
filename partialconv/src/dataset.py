@@ -12,29 +12,48 @@ from PIL import Image
 from .utils import get_jpgs
 from scipy.ndimage.filters import gaussian_filter
 
+class AddCustomNoise(object):
+    def __init__(self, mean=0., std=1., pepper_noise=0.05, gauss_idxs=[], pepper_idxs=[]):
+        self.std = std
+        self.mean = mean
+        self.pepper_noise = pepper_noise
+        self.gauss_idxs = gauss_idxs
+        self.pepper_idxs = pepper_idxs
+        
+    def __call__(self, tensor):
+        tensor[self.gauss_idxs,...] += torch.randn((len(self.gauss_idxs),tensor.size()[1], tensor.size()[2])) * self.std + self.mean
+        tensor[self.pepper_idxs,...] += torch.lt(torch.rand((len(self.pepper_idxs),tensor.size()[1], tensor.size()[2])), self.pepper_noise)
+        return tensor 
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1}, pepper_noise={2}, )'.format(self.mean, self.std, self.pepper_noise)
+
 class CostmapDataset(Dataset):
     def __init__(self, config, validation=False, test=False):
+
+        np.random.seed(0)
+
         self.config = config
         self.validation = validation
         self.test = test
 
         self.img_transform = transforms.Compose([
                     transforms.RandomAffine(degrees=(0,360),
-                                            translate=(0.0,0.2),
-                                            scale=(0.9,1.0)),
-                    transforms.RandomVerticalFlip()
+                                            translate=(0.0,0.3),
+                                            scale=(0.9,1.0),
+                                            shear=(-10,10,-10,10)),
+                    transforms.RandomVerticalFlip(),
+                    AddCustomNoise(0,0.02,0.01,[1,2],[0,3,4,5,6,7]),
                     ])
 
         list_IDs = get_jpgs(config.data_root)
-        n_split = int(self.config.train_test_split * len(list_IDs))
-        list_IDs_train = list_IDs[:n_split]
-        train_idxs = np.arange(len(list_IDs_train))
-        np.random.shuffle(train_idxs)  # validation set is random subset
-        n_train_no_val = int(self.config.train_val_split * len(list_IDs_train))
-        list_IDs_val = [list_IDs_train[idx] for idx in train_idxs[n_train_no_val:]]
-        list_IDs_train = [list_IDs_train[idx] for idx in train_idxs[:n_train_no_val]]
-        list_IDs_test = list_IDs[n_split:]
-
+        np.random.shuffle(list_IDs)  # randomly shuffle all the data
+        train_end = int(config.train_val_test[0] * len(list_IDs))
+        val_end = train_end + int(config.train_val_test[1] * len(list_IDs))
+        list_IDs_train = list_IDs[:train_end]
+        list_IDs_val = list_IDs[train_end:val_end]
+        list_IDs_test = list_IDs[val_end:]
+        
         if self.validation:
             self.imglist = list_IDs_val
         elif self.test:
@@ -90,11 +109,11 @@ class CostmapDataset(Dataset):
             alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
             # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * np.random.rand()
 
-        alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
+        alpha = alpha * 0.998 + 0.001  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
-        if self.validation or self.test:
+        if False:  # or self.validation or self.test:
             input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
             mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
             groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()

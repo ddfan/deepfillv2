@@ -76,8 +76,8 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
         
     for i in range(len(config.alpha_test_val)):
         if config.use_cvar_less_var:
-            var = outputs[i][:, 0:1, :, :]
-            cvar = outputs[i][:, 1:2, :, :]
+            var = outputs[i][:, 1:2, :, :]
+            cvar = outputs[i][:, 0:1, :, :] + outputs[i][:, 1:2, :, :]
         else:
             var = outputs[i][:, 0:1, :, :]
             cvar = outputs[i][:, 1:2, :, :]
@@ -117,7 +117,8 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     writer.add_figure('output', f, epoch)
 
     # create input figure
-    inputs_np = inputs.cpu().detach().numpy()
+    inputs_img = torch.cat((inputs, mask), dim=1)
+    inputs_np = inputs_img.cpu().detach().numpy()
     f, ax = plt.subplots(inputs_np.shape[0], inputs_np.shape[1],
         figsize=(inputs_np.shape[1] * 2, inputs_np.shape[0] * 2))
     f.tight_layout()

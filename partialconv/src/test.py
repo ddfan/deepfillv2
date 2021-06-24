@@ -5,6 +5,7 @@ from .vis import *
 from tqdm import tqdm
 import sys
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
 
 
 class Tester(object):
@@ -33,14 +34,14 @@ class Tester(object):
         model.eval()
 
         dataloader = DataLoader(dataset,
-                               batch_size=config.batch_size,
+                               batch_size=1,
                                shuffle=False)
         if self.config.show_progress_bar:
             dataloader = tqdm(dataloader, file=sys.stdout)
 
         # compute statistics for var and cvar estimates
-        n_samples = torch.zeros(len(config.alpha_test_val)).to(device)
-        n_gt_less_than_var = torch.zeros(len(config.alpha_test_val)).to(device)
+        n_samples = torch.zeros((len(dataloader), len(config.alpha_test_val))).to(device)
+        n_gt_less_than_var = torch.zeros((len(dataloader), len(config.alpha_test_val))).to(device)
         
         for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
             inputs = inputs.to(device)
@@ -62,9 +63,10 @@ class Tester(object):
                     var = output[:,0:1, :, :]
                     cvar = output[:,1:2, :, :]
 
-                n_samples[i] += torch.sum(mask_unflat)
-                n_gt_less_than_var[i] += torch.sum(mask_unflat * torch.lt(gt_unflat, var)) 
+                n_samples[step,i] = torch.sum(mask_unflat)
+                n_gt_less_than_var[step,i] = torch.sum(mask_unflat * torch.lt(gt_unflat, var)) 
 
-            print(n_gt_less_than_var / n_samples)
         alpha_implied = n_gt_less_than_var / n_samples
-        # alpha_implied_confidence =
+        alpha_implied = alpha_implied.detach().cpu().numpy()
+        plt.plot(alpha_implied.transpose(), '.')
+        plt.show()
