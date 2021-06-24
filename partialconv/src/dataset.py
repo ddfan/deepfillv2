@@ -100,7 +100,7 @@ class CostmapDataset(Dataset):
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
-        if self.validation or self.test:
+        if self.validation or self.test or not self.config.augment_data:
             input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
             mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
             groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
