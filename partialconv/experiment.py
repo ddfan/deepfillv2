@@ -23,7 +23,7 @@ def main(args):
     
     config.input_map_layers = ["elevation",
                                 "num_points",
-                                # "obstacle_occupancy",
+                                "obstacle_occupancy",
                                 "num_points_binned_0",
                                 "num_points_binned_1",
                                 "num_points_binned_2",

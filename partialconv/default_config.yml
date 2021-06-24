@@ -21,7 +21,7 @@ train_val_test: [0.9, 0.05, 0.05]
 augment_data: True
 
 ### NETWORK SETTING ###
-in_channels: 8
+in_channels: 9
 out_channels: 2
 img_size: 400
 # UNet layer size
