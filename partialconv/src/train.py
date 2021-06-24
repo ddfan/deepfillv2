@@ -76,6 +76,7 @@ class Trainer(object):
                 if best_val_loss != float("inf"):
                     if new_val_loss < best_val_loss:
                         print('Validation loss improved from {:.6f} to {:.6f}, saving.'.format(best_val_loss, new_val_loss))
+                        best_val_loss = new_val_loss
                     else:
                         print('Saving regular checkpoint, loss is {:.6f}.'.format(new_val_loss))
 
@@ -85,7 +86,8 @@ class Trainer(object):
                               [('optimizer', self.optimizer)],
                               self.epoch,
                               self.config)
-                best_val_loss = new_val_loss
+                else:
+                    best_val_loss = new_val_loss
                 
             self.epoch += 1
 
