@@ -43,7 +43,7 @@ class CostmapDataset(Dataset):
                                             scale=(0.9,1.0),
                                             shear=(-10,10,-10,10)),
                     transforms.RandomVerticalFlip(),
-                    AddCustomNoise(0,0.02,0.01,[1,2],[0,3,4,5,6,7]),
+                    # AddCustomNoise(0,0.02,0.01,[1,2],[0,3,4,5,6,7]),
                     ])
 
         list_IDs = get_jpgs(config.data_root)
@@ -113,7 +113,7 @@ class CostmapDataset(Dataset):
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
-        if False:  # or self.validation or self.test:
+        if self.validation or self.test:
             input_img = torch.from_numpy(input_img.astype(np.float32)).contiguous()
             mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
             groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
