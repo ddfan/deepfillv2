@@ -101,28 +101,35 @@ class RandomVoronoiMap(object):
         return grid
 
     def get_random_map(self):
-        # random points
-        points = np.random.randint(0, high=self.img_size, size=(self.num_cells, 2))
+        while True:
+            # random points
+            points = np.random.randint(0, high=self.img_size, size=(self.num_cells, 2))
 
-        # create regions
-        vor = Voronoi(points)
-        regions, vertices = self.voronoi_finite_polygons_2d(vor)
+            # create regions
+            vor = Voronoi(points)
+            try:
+                regions, vertices = self.voronoi_finite_polygons_2d(vor)
+            except:
+                # sometimes this fails for unknown reasons.  try again.
+                continue
 
-        map_arr = np.zeros((self.img_size, self.img_size)).flatten()
-        x, y = np.meshgrid(np.arange(self.img_size), np.arange(self.img_size))
-        x, y = x.flatten(), y.flatten()
-        query_points = np.vstack((x, y)).T
-        for region in regions:
-            polygon = np.array(vertices[region])
-            map_arr += Path(polygon).contains_points(query_points) * np.random.rand()
+            map_arr = np.zeros((self.img_size, self.img_size)).flatten()
+            x, y = np.meshgrid(np.arange(self.img_size), np.arange(self.img_size))
+            x, y = x.flatten(), y.flatten()
+            query_points = np.vstack((x, y)).T
+            for region in regions:
+                polygon = np.array(vertices[region])
+                map_arr += Path(polygon).contains_points(query_points) * np.random.rand()
 
-        map_arr = map_arr.reshape((self.img_size, self.img_size))
+            map_arr = map_arr.reshape((self.img_size, self.img_size))
 
-        # gaussian blur
-        map_arr = gaussian_filter(map_arr, sigma=2.0)
+            # gaussian blur
+            map_arr = gaussian_filter(map_arr, sigma=2.0)
 
-        # clip image
-        map_arr = np.clip(map_arr, 0, 1)
+            # clip image
+            map_arr = np.clip(map_arr, 0, 1)
+
+            break
 
         return map_arr
 
