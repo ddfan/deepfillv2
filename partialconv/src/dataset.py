@@ -88,6 +88,7 @@ class CostmapDataset(Dataset):
             alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))
             alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
             alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
+            # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * np.random.rand()
 
         alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
 

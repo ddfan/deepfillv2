@@ -71,6 +71,9 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     # assemble var and cvar images
     vars = []
     cvars = []
+    n_samples = torch.zeros(len(config.alpha_test_val)).to(device)
+    n_gt_less_than_var = torch.zeros(len(config.alpha_test_val)).to(device)
+        
     for i in range(len(config.alpha_test_val)):
         if config.use_cvar_less_var:
             var = outputs[i][:, 0:1, :, :]
@@ -78,10 +81,18 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
         else:
             var = outputs[i][:, 0:1, :, :]
             cvar = outputs[i][:, 1:2, :, :]
-        vars.append(var * mask)
-        cvars.append(cvar * mask)
+    
+        n_samples[i] += torch.sum(mask)
+        n_gt_less_than_var[i] += torch.sum(mask * torch.lt(gt, var)) 
+
+        var = var * mask
+        cvar = cvar * mask
+        vars.append(var)
+        cvars.append(cvar)
     vars = torch.cat(vars, dim=1)
     cvars = torch.cat(cvars, dim=1)
+    
+    # print(n_gt_less_than_var / n_samples)
 
     # assemble varying cvar
     # alpha = torch.reshape(alpha, (-1, 1, config.img_size, config.img_size))

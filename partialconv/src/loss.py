@@ -27,7 +27,7 @@ class CvarLoss(nn.Module):
         else:
             cvar = var_and_cvar[:, 1, :, :]
 
-        var_loss = self.var_huber_loss(gt, var, alpha, mask)
+        var_loss = self.cvar_huber_loss(gt, var, alpha, mask)
         cvar_calc = self.cvar_calc(gt, var, alpha)
         cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach())
 
@@ -60,8 +60,10 @@ class CvarLoss(nn.Module):
         is_less_huber = torch.le(err, -self.loss_huber / (1.0 - alpha))
 
         loss = is_greater_huber * (torch.abs(err) * alpha)
-        loss += torch.logical_not(is_greater_huber) * is_pos_err * (0.5 / self.loss_huber * torch.square(alpha * err) + 0.5 * self.loss_huber) 
-        loss += torch.logical_not(is_less_huber) * is_neg_err * (0.5 / self.loss_huber * torch.square((1.0 - alpha) * err) + 0.5 * self.loss_huber) 
+        loss += torch.logical_not(is_greater_huber) * is_pos_err * \
+                (0.5 / self.loss_huber * torch.square(alpha * err) + 0.5 * self.loss_huber)
+        loss += torch.logical_not(is_less_huber) * is_neg_err * \
+                (0.5 / self.loss_huber * torch.square((1.0 - alpha) * err) + 0.5 * self.loss_huber)
         loss += is_less_huber * (torch.abs(err) * (1.0 - alpha))
         
         return torch.mean(loss * mask)

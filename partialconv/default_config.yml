@@ -8,7 +8,7 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
-resume_dir: /home/david/Documents/bag_files/cvar_logs/models/cvar_mono_model_0057.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/models/cvar_mono_model_0180.pth
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
