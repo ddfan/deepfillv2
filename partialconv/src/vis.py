@@ -42,7 +42,7 @@ def visualize_l1loss(model, config, writer, device, dataset, filename=None, epoc
 
 def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=0):
     model.eval()
-    inputs, mask, gt, alpha = zip(*[dataset[i, True] for i in range(min(len(dataset), config.num_vis_imgs))])
+    inputs, mask, gt, alpha = zip(*[dataset[i] for i in range(min(len(dataset), config.num_vis_imgs))])
     inputs = torch.stack(inputs)
     mask = torch.stack(mask)
     gt = torch.stack(gt)
@@ -67,6 +67,7 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     inputs = torch.reshape(inputs, (-1, config.in_channels, config.img_size, config.img_size))
     mask = torch.reshape(mask, (-1, 1, config.img_size, config.img_size))
     gt = torch.reshape(gt, (-1, 1, config.img_size, config.img_size))
+    alpha = torch.reshape(alpha, (-1, 1, config.img_size, config.img_size))
 
     # assemble var and cvar images
     vars = []
@@ -117,7 +118,7 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     writer.add_figure('output', f, epoch)
 
     # create input figure
-    inputs_img = torch.cat((inputs, mask), dim=1)
+    inputs_img = torch.cat((inputs, mask, alpha), dim=1)
     inputs_np = inputs_img.cpu().detach().numpy()
     f, ax = plt.subplots(inputs_np.shape[0], inputs_np.shape[1],
         figsize=(inputs_np.shape[1] * 2, inputs_np.shape[0] * 2))

@@ -21,8 +21,8 @@ def main(args):
     config.data_root = args.data_root
     config.ckpt_dir_root = args.ckpt_dir_root
     
-    config.input_map_layers = ["num_points",
-                                "elevation",
+    config.input_map_layers = ["elevation",
+                                "num_points",
                                 # "obstacle_occupancy",
                                 "num_points_binned_0",
                                 "num_points_binned_1",
@@ -55,10 +55,16 @@ def main(args):
         # print("Loading the Training Dataset...")
         dataset_train = CostmapDataset(config)
         dataset_train.clean_data()
+        if len(dataset_train) == 0:
+            print("No training data found!")
+            quit()
         print("Training on " + str(len(dataset_train)) + " datapoints.")
 
         # print("Loading the Validation Dataset...")
         dataset_val = CostmapDataset(config, validation=True)
+        if len(dataset_val) == 0:
+            print("No validation data found!")
+            quit()
         print("Validating on " + str(len(dataset_val)) + " datapoints.")
         dataset_val.clean_data()
 
@@ -101,6 +107,9 @@ def main(args):
     # Set the configuration for testing
     elif config.mode == "test":
         dataset_test = CostmapDataset(config, test=True)
+        if len(dataset_test) == 0:
+            print("No test data found!")
+            quit()
         print("Testing on " + str(len(dataset_test)) + " datapoints.")
         dataset_test.clean_data()
 

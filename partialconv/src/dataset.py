@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 from PIL import Image
 from .utils import get_jpgs
-from scipy.ndimage.filters import gaussian_filter
+from .voronoi import RandomVoronoiMap
 
 class AddCustomNoise(object):
     def __init__(self, mean=0., std=1., pepper_noise=0.05, gauss_idxs=[], pepper_idxs=[]):
@@ -45,6 +45,7 @@ class CostmapDataset(Dataset):
                     transforms.RandomVerticalFlip(),
                     # AddCustomNoise(0,0.02,0.01,[1,2],[0,3,4,5,6,7]),
                     ])
+        self.voronoi_map = RandomVoronoiMap(img_size=self.config.img_size)
 
         list_IDs = get_jpgs(config.data_root)
         np.random.shuffle(list_IDs)  # randomly shuffle all the data
@@ -67,14 +68,7 @@ class CostmapDataset(Dataset):
     def __len__(self):
         return len(self.imglist)
     
-    def __getitem__(self, index_tuple):
-        if isinstance(index_tuple, int):
-            index = index_tuple
-            use_alpha_decay = False
-        elif isinstance(index_tuple, tuple):
-            index = index_tuple[0]
-            use_alpha_decay = index_tuple[1]
-
+    def __getitem__(self, index):
         datafilepath = self.imglist[index]
         data = np.load(datafilepath)
 
@@ -98,17 +92,10 @@ class CostmapDataset(Dataset):
         groundtruth = np.expand_dims(groundtruth, axis=0)
 
         ####  Set Alpha ######
-        if use_alpha_decay:
-            # create decaying alpha from robot position
-            alpha = np.exp(-data['robot_distance'] / self.config.alpha_scale_by_distance)
-            alpha = np.expand_dims(alpha, axis=0)
-        else:
-            # create random image of alphas
-            alpha = np.random.normal(0, 1, (1, self.config.img_size, self.config.img_size))
-            alpha = gaussian_filter(alpha, sigma=self.config.alpha_random_variance)
-            alpha = (alpha - np.min(alpha)) / (np.max(alpha) - np.min(alpha))
-            # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * np.random.rand()
-
+        # create random image of alphas
+        alpha = self.voronoi_map.get_random_map()
+        alpha = np.expand_dims(alpha, axis=0)
+        # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * np.random.rand()
         alpha = alpha * 0.998 + 0.001  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######
