@@ -27,7 +27,7 @@ class CvarLoss(nn.Module):
         else:
             cvar = var_and_cvar[:, 1, :, :]
 
-        var_loss = self.cvar_huber_loss(gt, var, alpha, mask)
+        var_loss = self.var_huber_loss(gt, var, alpha, mask)
         cvar_calc = self.cvar_calc(gt, var, alpha)
         # need to normalize l1 loss by number of valid error pixels.
         cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach()) * \

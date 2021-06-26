@@ -8,7 +8,7 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
-resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0625_1929_35/models/model_0011.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0625_2030_10/models/model_0010.pth
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
@@ -32,8 +32,8 @@ use_cvar_less_var: True
 use_cvar_loss: True
 use_monotonic_loss: True
 monotonic_loss_delta: 0.0001
-loss_huber: 0.01
-var_coef: 10.0
+loss_huber: 0.001
+var_coef: 100.0
 cvar_coef: 1.0
 mono_coef: 1.0e-4
 
