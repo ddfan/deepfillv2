@@ -21,12 +21,12 @@ class Tester(object):
 
     def iterate(self):
         
-        # save visualization
-        print('Saving plots...')
-        if self.config.use_cvar_loss:
-            visualize_cvar(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
-        else:
-            visualize_l1loss(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
+        # # save visualization
+        # print('Saving plots...')
+        # if self.config.use_cvar_loss:
+        #     visualize_cvar(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
+        # else:
+        #     visualize_l1loss(self.model, self.config, self.test_writer, self.device, self.dataset_test, epoch=0)
 
         # compute statistics
         print('Computing statistics...')
@@ -42,8 +42,8 @@ class Tester(object):
             dataloader = tqdm(dataloader, file=sys.stdout)
 
         # compute statistics for var and cvar estimates
-        n_samples = torch.zeros((len(dataloader), len(config.alpha_test_val))).to(device)
-        n_gt_less_than_var = torch.zeros((len(dataloader), len(config.alpha_test_val))).to(device)
+        n_samples = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
+        n_gt_less_than_var = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
         
         for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
             inputs = inputs.to(device)
@@ -53,7 +53,7 @@ class Tester(object):
             mask_unflat = torch.reshape(mask, (-1, 1, config.img_size, config.img_size))                
             gt_unflat = torch.reshape(gt, (-1, 1, config.img_size, config.img_size))
 
-            for i, alpha_val in enumerate(config.alpha_test_val):
+            for i, alpha_val in enumerate(config.alpha_stats_val):
                 alpha_test = torch.ones_like(alpha) * alpha_val
                 output = model(inputs, mask, alpha_test)
                 output = torch.reshape(output, (-1, config.out_channels, config.img_size, config.img_size))

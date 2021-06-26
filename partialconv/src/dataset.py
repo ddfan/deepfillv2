@@ -79,6 +79,9 @@ class CostmapDataset(Dataset):
         input_img = np.stack(input_img, axis=-1)
         groundtruth = data[self.output_layer]
 
+        #rescale groundtruth, set 1 to 0.5 and rescale
+        groundtruth = np.clip(groundtruth, 0, 0.5) * 2.0
+
         # generate masks
         valid_ground_truth = np.isfinite(groundtruth)
         valid_input = np.isfinite(input_img[:,:,0])
