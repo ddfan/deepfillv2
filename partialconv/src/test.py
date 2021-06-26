@@ -44,7 +44,8 @@ class Tester(object):
         # compute statistics for var and cvar estimates
         n_samples = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
         n_gt_less_than_var = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
-        
+        cvar_mse = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
+        r2_vals = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
         for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
             inputs = inputs.to(device)
             mask = mask.to(device)
@@ -68,7 +69,24 @@ class Tester(object):
                 n_samples[step,i] = torch.sum(mask_unflat)
                 n_gt_less_than_var[step,i] = torch.sum(mask_unflat * torch.lt(gt_unflat, var)) 
 
+                cvar_mse[step, i] = torch.mean(torch.square((cvar - gt_unflat) * mask_unflat)).detach()
+                gt_mean = torch.mean(gt_unflat * mask_unflat)
+                r2_vals[step,i] = 1.0 - cvar_mse[step,i] * torch.sum(mask_unflat) / \
+                    torch.sum(torch.square((gt_unflat - gt_mean) * mask_unflat)).detach()
+
         alpha_implied = n_gt_less_than_var / n_samples
-        alpha_implied = alpha_implied.detach().cpu().numpy()
-        plt.plot(alpha_implied.transpose(), '.')
+        alpha_implied = alpha_implied.detach().cpu().numpy().transpose()
+        cvar_mse = cvar_mse.detach().cpu().numpy().transpose()
+        r2_vals = r2_vals.detach().cpu().numpy().transpose()
+
+        plt.subplot(311)
+        plt.plot(config.alpha_stats_val, alpha_implied)
+        plt.ylabel("implied fraction")
+        plt.subplot(312)
+        plt.plot(config.alpha_stats_val, cvar_mse)
+        plt.ylabel("cvar mse")
+        plt.subplot(313)
+        plt.plot(config.alpha_stats_val, r2_vals)
+        plt.ylabel("r2")
+        plt.xlabel("alpha")
         plt.show()

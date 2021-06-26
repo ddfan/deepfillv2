@@ -33,7 +33,7 @@ use_cvar_loss: True
 use_monotonic_loss: True
 monotonic_loss_delta: 0.0001
 loss_huber: 0.001
-var_coef: 10.0
+var_coef: 100.0
 cvar_coef: 1.0
 mono_coef: 1.0e-4
 
