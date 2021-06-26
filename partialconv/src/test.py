@@ -6,8 +6,11 @@ from .utils import write_metadata
 from tqdm import tqdm
 import sys
 from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
 
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 
 class Tester(object):
     def __init__(self, config, device, model, dataset_test):
@@ -79,15 +82,48 @@ class Tester(object):
         cvar_mse = cvar_mse.detach().cpu().numpy()
         r2_vals = r2_vals.detach().cpu().numpy()
 
+        # make statistics plot
+        boxplot_width = 0.03
+        fig = plt.figure(figsize=(4, 4), dpi=150)
 
         plt.subplot(311)
-        plt.violinplot(alpha_implied, positions=config.alpha_stats_val, widths=0.05)
-        plt.ylabel("implied fraction")
+        plt.boxplot(alpha_implied, positions=config.alpha_stats_val, widths=boxplot_width, 
+            flierprops={'markerfacecolor': 'k', 'markeredgecolor':'k', 'marker': '.', 'markersize': 1})
+        plt.ylabel(r'$Implied ~\alpha$')
+        plt.title("Test Performance")
+        plt.xlim((min(config.alpha_stats_val)-boxplot_width, max(config.alpha_stats_val)+boxplot_width))
+        plt.ylim((0,1))
+        plt.tick_params(
+            axis='x',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            bottom=False,      # ticks along the bottom edge are off
+            top=False,         # ticks along the top edge are off
+            labelbottom=False) # labels along the bottom edge are off
+        
         plt.subplot(312)
-        plt.violinplot(cvar_mse, positions=config.alpha_stats_val, widths=0.05)
-        plt.ylabel("cvar mse")
+        plt.boxplot(cvar_mse, positions=config.alpha_stats_val, widths=boxplot_width,
+            flierprops={'markerfacecolor': 'k', 'markeredgecolor':'k', 'marker': '.', 'markersize': 1})
+        plt.ylabel("CVaR MSE")
+        plt.xlim((min(config.alpha_stats_val)-boxplot_width, max(config.alpha_stats_val)+boxplot_width))
+        plt.ylim((0,0.1))
+        plt.tick_params(
+            axis='x',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            bottom=False,      # ticks along the bottom edge are off
+            top=False,         # ticks along the top edge are off
+            labelbottom=False) # labels along the bottom edge are off
+
         plt.subplot(313)
-        plt.violinplot(r2_vals, positions=config.alpha_stats_val, widths=0.05)
-        plt.ylabel("r2")
-        plt.xlabel("alpha")
+        plt.boxplot(r2_vals, positions=config.alpha_stats_val, widths=boxplot_width,
+            flierprops={'markerfacecolor': 'k', 'markeredgecolor':'k', 'marker': '.', 'markersize': 1})
+        plt.ylabel(r"$R^2$")
+        plt.xlabel(r"$\alpha$")
+        plt.xlim((min(config.alpha_stats_val)-boxplot_width, max(config.alpha_stats_val)+boxplot_width))
+        plt.ylim((0.5,1.0))
+        plt.gca().set_xticklabels([str(alph).lstrip('0') for alph in config.alpha_stats_val])
+
+        plt.tight_layout()
+        plt.subplots_adjust(hspace=0.13)
+        plt.savefig(self.config.ckpt + '/test/stats.pdf', bbox_inches="tight")
+
         plt.show()
