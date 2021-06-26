@@ -75,18 +75,19 @@ class Tester(object):
                     torch.sum(torch.square((gt_unflat - gt_mean) * mask_unflat)).detach()
 
         alpha_implied = n_gt_less_than_var / n_samples
-        alpha_implied = alpha_implied.detach().cpu().numpy().transpose()
-        cvar_mse = cvar_mse.detach().cpu().numpy().transpose()
-        r2_vals = r2_vals.detach().cpu().numpy().transpose()
+        alpha_implied = alpha_implied.detach().cpu().numpy()
+        cvar_mse = cvar_mse.detach().cpu().numpy()
+        r2_vals = r2_vals.detach().cpu().numpy()
+
 
         plt.subplot(311)
-        plt.plot(config.alpha_stats_val, alpha_implied)
+        plt.violinplot(alpha_implied, positions=config.alpha_stats_val, widths=0.05)
         plt.ylabel("implied fraction")
         plt.subplot(312)
-        plt.plot(config.alpha_stats_val, cvar_mse)
+        plt.violinplot(cvar_mse, positions=config.alpha_stats_val, widths=0.05)
         plt.ylabel("cvar mse")
         plt.subplot(313)
-        plt.plot(config.alpha_stats_val, r2_vals)
+        plt.violinplot(r2_vals, positions=config.alpha_stats_val, widths=0.05)
         plt.ylabel("r2")
         plt.xlabel("alpha")
         plt.show()
