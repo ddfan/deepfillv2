@@ -11,6 +11,7 @@ import cv2
 from PIL import Image
 from .utils import get_jpgs
 from .voronoi import RandomVoronoiMap
+from scipy.ndimage import gaussian_filter
 
 class AddCustomNoise(object):
     def __init__(self, mean=0., std=1., pepper_noise=0.05, gauss_idxs=[], pepper_idxs=[]):
@@ -94,8 +95,10 @@ class CostmapDataset(Dataset):
         ####  Set Alpha ######
         # create random image of alphas
         alpha = self.voronoi_map.get_random_map()
+        # alpha = self.voronoi_map.get_random_gaussian_map()
         alpha = np.expand_dims(alpha, axis=0)
-        # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * np.random.rand()
+        # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * 0.5
+
         alpha = alpha * 0.998 + 0.001  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######

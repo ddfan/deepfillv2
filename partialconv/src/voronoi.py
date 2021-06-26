@@ -6,9 +6,10 @@ from scipy.ndimage.filters import gaussian_filter
 
 
 class RandomVoronoiMap(object):
-    def __init__(self, img_size=400, num_cells=25):
+    def __init__(self, img_size=400, num_cells=25, gaussian_sigma=2.0):
         self.img_size = img_size
         self.num_cells = num_cells
+        self.gaussian_sigma = gaussian_sigma
 
     def voronoi_finite_polygons_2d(self, vor, radius=None):
         """
@@ -124,7 +125,7 @@ class RandomVoronoiMap(object):
             map_arr = map_arr.reshape((self.img_size, self.img_size))
 
             # gaussian blur
-            map_arr = gaussian_filter(map_arr, sigma=2.0)
+            map_arr = gaussian_filter(map_arr, sigma=self.gaussian_sigma)
 
             # clip image
             map_arr = np.clip(map_arr, 0, 1)
@@ -133,12 +134,20 @@ class RandomVoronoiMap(object):
 
         return map_arr
 
+    def get_random_gaussian_map(self):
+        alpha = np.random.rand(self.img_size, self.img_size)
+        alpha = (gaussian_filter(alpha, sigma=self.gaussian_sigma) - 0.5) * self.gaussian_sigma + 0.5
+        # alpha = np.clip(alpha, 0, 1)
+        alpha = 1.0 / (1.0 + np.exp(-(alpha - 0.5) * self.gaussian_sigma * 1.2)) #scale to make distribution more uniform
+        alpha = np.clip(alpha, 0, 1)
+
+        return alpha
 
 if __name__ == '__main__':
     import time
     start_time = time.time()
 
-    randommap = RandomVoronoiMap(num_cells=25)
+    randommap = RandomVoronoiMap(num_cells=50)
     n_samples = 100
     n_bins = 50
     hist_cumulative = np.zeros(n_bins)

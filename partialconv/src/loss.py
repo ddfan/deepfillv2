@@ -29,7 +29,9 @@ class CvarLoss(nn.Module):
 
         var_loss = self.cvar_huber_loss(gt, var, alpha, mask)
         cvar_calc = self.cvar_calc(gt, var, alpha)
-        cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach())
+        # need to normalize l1 loss by number of valid error pixels.
+        cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach()) * \
+             torch.sum(mask).detach() / torch.sum(torch.gt(gt,var) * mask).detach()
 
         loss_dict = {'var': var_loss,
                      'cvar': cvar_loss}
@@ -75,9 +77,9 @@ class CvarLoss(nn.Module):
 
     def cvar_huber_loss(self, gt, var, alpha, mask):
         # compute quantile loss (with custom huber smoothing)
-        huber_greater = gt + 0.5 / self.loss_huber * torch.square(gt - var) + 0.5 * self.loss_huber
-        huber_less = gt + 0.5 / self.loss_huber * torch.square((gt - var) * alpha / (1.0 - alpha)) + 0.5 * self.loss_huber
-        no_huber = var + torch.clamp(gt - var, min=0.0) / (1.0 - alpha)
+        huber_greater = (gt + 0.5 / self.loss_huber * torch.square(gt - var) + 0.5 * self.loss_huber) * (1.0 - alpha)
+        huber_less = (gt + 0.5 / self.loss_huber * torch.square((gt - var) * alpha / (1.0 - alpha) ) + 0.5 * self.loss_huber) * (1.0 - alpha)
+        no_huber = (1.0 - alpha) * var + torch.clamp(gt - var, min=0.0)
 
         var_geq_cost = torch.ge(var, gt)
         var_leq_cost = torch.lt(var, gt)
@@ -234,14 +236,68 @@ def total_variation_loss(image, mask, method):
 
 
 if __name__ == '__main__':
-    from config import get_config
-    config = get_config()
-    vgg = VGG16FeatureExtractor()
-    criterion = InpaintingLoss(config['loss_coef'], vgg)
+    #     from config import get_config
+    #     config = get_config()
+    #     vgg = VGG16FeatureExtractor()
+    #     criterion = InpaintingLoss(config['loss_coef'], vgg)
 
-    img = torch.randn(1, 3, 500, 500)
-    mask = torch.ones((1, 1, 500, 500))
-    mask[:, :, 250:, :][:, :, :, 250:] = 0
-    input = img * mask
-    out = torch.randn(1, 3, 500, 500)
-    loss = criterion(input, mask, out, img)
+    #     img = torch.randn(1, 3, 500, 500)
+    #     mask = torch.ones((1, 1, 500, 500))
+    #     mask[:, :, 250:, :][:, :, :, 250:] = 0
+    #     input = img * mask
+    #     out = torch.randn(1, 3, 500, 500)
+    #     loss = criterion(input, mask, out, img)
+
+    import numpy as np
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib.rcParams["pdf.fonttype"] = 42
+    matplotlib.rcParams["ps.fonttype"] = 42
+
+    v = np.linspace(0, 1, 500)
+
+    j = 0.5
+    Alpha = [0.5, 0.7, 0.9]
+    K = 3
+    H = np.linspace(0.2, 0.6, K)
+    colors = ["green", "lime", "cyan"]
+    f, ax = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(6, 2.7))
+
+    for i, alpha in enumerate(Alpha):
+        lv = v * (1 - alpha) + np.maximum((j - v), 0)
+
+        for k in range(K):
+            h = H[k]
+            lh_up = (j + 0.5 / h * np.square(j - v) + 0.5 * h) * (1 - alpha)
+            lh_down = (j + 0.5 / h * np.square(alpha / (1 - alpha) * (j - v)) + 0.5 * h) * (1 - alpha)
+
+            case_up = np.logical_and(j <= v, v < j + h)
+            case_down = np.logical_and(j - (1 - alpha) / alpha * h <= v, v < j)
+            case_else = np.logical_not(np.logical_or(case_up, case_down))
+
+            lh = case_up * lh_up + case_down * lh_down + case_else * lv
+
+            ax[i].plot(v, lh, color=colors[k])
+
+        ax[i].plot(v, lv, 'k')
+        ax[i].set_aspect('equal')
+        ax[i].plot([j, j], [0, 1], ':', label="_")
+        ax[i].set_title(r'$\alpha=$' + str(alpha), fontsize=10)
+        ax[i].get_yaxis().set_ticks([])
+
+    plt.xticks([j], [r'$v = j$'])
+    # plt.ylim(j,0.8+j)
+    # plt.xlim(0,1)
+
+    plt.sca(ax[0])
+    plt.ylabel(r'$l_h(v)$')
+    plt.sca(ax[1])
+    leg = [r'$h=$' + str(h) for h in H]
+    leg.append(r'$l_v ~ (h=0)$')
+
+    f.legend(leg, bbox_to_anchor=(0.1, 0.), loc="lower left", ncol=4)
+    plt.tight_layout()
+
+    # plt.savefig("huber.pdf", bbox_inches="tight")
+
+    plt.show()

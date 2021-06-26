@@ -77,7 +77,7 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
         
     for i in range(len(config.alpha_test_val)):
         if config.use_cvar_less_var:
-            var = outputs[i][:, 1:2, :, :]
+            var = outputs[i][:, 0:1, :, :]
             cvar = outputs[i][:, 0:1, :, :] + outputs[i][:, 1:2, :, :]
         else:
             var = outputs[i][:, 0:1, :, :]
