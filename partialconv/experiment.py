@@ -28,8 +28,7 @@ def main(args):
                                 "num_points_binned_1",
                                 "num_points_binned_2",
                                 "num_points_binned_3",
-                                "num_points_binned_4",
-                                "robot_distance"]
+                                "num_points_binned_4", ]
     # config.output_layer = "risk_ground_truth"
     config.output_layer = "risk"
 

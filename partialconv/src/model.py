@@ -139,23 +139,23 @@ class PConvUNet(nn.Module):
         self.print_sizes = False
         n_feat = 256
 
-        self.enc_1 = PConvActiv(self.in_channels, 64, 'down-7', bn=False)
-        self.enc_2 = PConvActiv(64, 128, 'down-5')
-        self.enc_3 = PConvActiv(128, 256, 'down-5')
-        self.enc_4 = PConvActiv(256, n_feat, 'down-3')
-        self.enc_5 = PConvActiv(n_feat, n_feat, 'down-3')
-        self.enc_6 = PConvActiv(n_feat, n_feat, 'down-3')
-        self.enc_7 = PConvActiv(n_feat, n_feat, 'down-3')
-        self.enc_8 = PConvActiv(n_feat, n_feat, 'down-3')
+        self.enc_1 = PConvActiv(self.in_channels, 32, 'down-7', bn=False)
+        self.enc_2 = PConvActiv(32, 64, 'down-5')
+        self.enc_3 = PConvActiv(64, 128, 'down-5')
+        self.enc_4 = PConvActiv(128, n_feat, 'down-3')
+        # self.enc_5 = PConvActiv(n_feat, n_feat, 'down-3')
+        # self.enc_6 = PConvActiv(n_feat, n_feat, 'down-3')
+        # self.enc_7 = PConvActiv(n_feat, n_feat, 'down-3')
+        # self.enc_8 = PConvActiv(n_feat, n_feat, 'down-3')
 
-        self.dec_8 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
-        self.dec_7 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
-        self.dec_6 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
-        self.dec_5 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
-        self.dec_4 = PConvActiv(n_feat + 256, 256, dec=True, active='leaky')
-        self.dec_3 = PConvActiv(256 + 128, 128, dec=True, active='leaky')
-        self.dec_2 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
-        self.dec_1 = PConvActiv(64 + self.in_channels, self.out_channels, dec=True, bn=False,
+        # self.dec_8 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        # self.dec_7 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        # self.dec_6 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        # self.dec_5 = PConvActiv(n_feat + n_feat, n_feat, dec=True, active='leaky')
+        self.dec_4 = PConvActiv(n_feat + 128, 128, dec=True, active='leaky')
+        self.dec_3 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
+        self.dec_2 = PConvActiv(64 + 32, 32, dec=True, active='leaky')
+        self.dec_1 = PConvActiv(32 + self.in_channels, self.out_channels, dec=True, bn=False,
                                 active='leaky', conv_bias=True)
 
     def forward(self, img, mask, alpha=None):

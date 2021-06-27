@@ -46,9 +46,14 @@ class CostmapDataset(Dataset):
                     transforms.RandomVerticalFlip(),
                     # AddCustomNoise(0,0.02,0.01,[1,2],[0,3,4,5,6,7]),
                     ])
-        self.voronoi_map = RandomVoronoiMap(img_size=self.config.img_size)
+        self.voronoi_map = RandomVoronoiMap(img_size=self.config.img_size,
+                                            gaussian_sigma=15.0)
 
         list_IDs = get_jpgs(config.data_root)
+
+        # prune datas that dont match datasets
+        list_IDs = [s for s in list_IDs if any([dataset in s for dataset in config.datasets])]
+
         np.random.shuffle(list_IDs)  # randomly shuffle all the data
         train_end = int(config.train_val_test[0] * len(list_IDs))
         val_end = train_end + int(config.train_val_test[1] * len(list_IDs))
@@ -97,8 +102,8 @@ class CostmapDataset(Dataset):
 
         ####  Set Alpha ######
         # create random image of alphas
-        alpha = self.voronoi_map.get_random_map()
-        # alpha = self.voronoi_map.get_random_gaussian_map()
+        # alpha = self.voronoi_map.get_random_map()
+        alpha = self.voronoi_map.get_random_gaussian_map()
         alpha = np.expand_dims(alpha, axis=0)
         # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * 0.5
 
@@ -148,7 +153,14 @@ class CostmapDataset(Dataset):
             try:
                 data = np.load(filename)
             except:
+                print("Found bad data file: ")
                 print(filename)
+
+            # check elevation
+            if np.isnan(data["elevation"]).all():
+                print("File has no elevation map, removing... ")
+                print(filename)
+                os.remove(filename)
 
     def add_noise_to_img(self, img, mean=0, sigma=0.01):
         gauss = np.random.normal(mean, sigma, img.shape)
