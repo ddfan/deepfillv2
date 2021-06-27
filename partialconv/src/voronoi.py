@@ -139,6 +139,8 @@ class RandomVoronoiMap(object):
         alpha = (gaussian_filter(alpha, sigma=self.gaussian_sigma) - 0.5) * self.gaussian_sigma + 0.5
         # alpha = np.clip(alpha, 0, 1)
         alpha = 1.0 / (1.0 + np.exp(-(alpha - 0.5) * self.gaussian_sigma * 1.2)) #scale to make distribution more uniform
+        scale_factor = 0.04
+        alpha = (1 + scale_factor*2) * alpha - scale_factor
         alpha = np.clip(alpha, 0, 1)
 
         return alpha
@@ -147,12 +149,13 @@ if __name__ == '__main__':
     import time
     start_time = time.time()
 
-    randommap = RandomVoronoiMap(num_cells=50)
+    randommap = RandomVoronoiMap(num_cells=50, gaussian_sigma=15.0)
     n_samples = 100
     n_bins = 50
     hist_cumulative = np.zeros(n_bins)
     for i in range(n_samples):
-        map_arr = randommap.get_random_map()
+        # map_arr = randommap.get_random_map()
+        map_arr = randommap.get_random_gaussian_map()
         hist, bins = np.histogram(map_arr, bins=n_bins, range=(0, 1))
         hist_cumulative += hist
 
