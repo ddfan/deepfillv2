@@ -54,7 +54,7 @@ def main(args):
         # Define the CostmapDataset Dataset and Data Loader
         # print("Loading the Training Dataset...")
         dataset_train = CostmapDataset(config)
-        dataset_train.clean_data()
+        # dataset_train.clean_data()
         if len(dataset_train) == 0:
             print("No training data found!")
             quit()
@@ -66,7 +66,7 @@ def main(args):
             print("No validation data found!")
             quit()
         print("Validating on " + str(len(dataset_val)) + " datapoints.")
-        dataset_val.clean_data()
+        # dataset_val.clean_data()
 
         # Define the Loss fucntion
         # criterion = InpaintingLoss(VGG16FeatureExtractor(),
@@ -111,7 +111,7 @@ def main(args):
             print("No test data found!")
             quit()
         print("Testing on " + str(len(dataset_test)) + " datapoints.")
-        dataset_test.clean_data()
+        # dataset_test.clean_data()
 
         start_epoch = load_ckpt(config.resume_dir,
                                    [("model", model)])
