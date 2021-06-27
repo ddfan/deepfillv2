@@ -68,12 +68,14 @@ class CvarLoss(nn.Module):
                 (0.5 / self.loss_huber * torch.square((1.0 - alpha) * err) + 0.5 * self.loss_huber)
         loss += is_less_huber * (torch.abs(err) * (1.0 - alpha))
         
-        return torch.mean(loss * mask)
+        # loss = alpha * torch.clamp(err, min=0) + (1.0 - alpha) * torch.clamp(-err, min=0)
+
+        return torch.sum(loss * mask) / torch.sum(mask)
 
     def monotonic_loss(self, val_alpha_plus, val, mask):
         diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
         smoothed_mae = torch.exp(diff) - diff - 1.0
-        return torch.mean(smoothed_mae * mask)
+        return torch.sum(smoothed_mae * mask) / torch.sum(mask)
 
     def cvar_huber_loss(self, gt, var, alpha, mask):
         # compute quantile loss (with custom huber smoothing)
