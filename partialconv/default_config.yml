@@ -8,7 +8,7 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
-resume_dir: /home/david/Documents/bag_files/cvar_logs/models/ckpt_0626_0909_37_model_0050.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0627_1053_03/models/model_0002.pth
 # datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
 datasets: ["subway_ground"]
 # datasets: ["wells"]
@@ -17,14 +17,15 @@ datasets: ["subway_ground"]
 # the number of max iteration
 max_epochs: 200000
 # the batch size
-batch_size: 8
+batch_size: 1
 train_val_test: [0.9, 0.05, 0.05]
+validate_on_train: False
 
 ### DATA AUGMENTATION ###
 augment_data: True
 
 ### NETWORK SETTING ###
-in_channels: 8
+in_channels: 9
 out_channels: 2
 img_size: 400
 # UNet layer size
@@ -46,7 +47,7 @@ initial_lr: 0.0002
 finetune_lr: 0.0005
 momentum: 0
 weight_decay: 0
-clip: 1.0
+clip: False
 
 ### LOG INTERVALS ###
 # viaulizing the output images
@@ -57,9 +58,8 @@ save_model_interval: 10
 # printing the losses to standard output line
 print_step_losses: False
 show_progress_bar: True
-alpha_test_val: [0.1,0.5,0.9]
+alpha_test_val: [0.8,0.9,1]
 alpha_stats_val: [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.99]
-alpha_scale_by_distance: 20.0
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset

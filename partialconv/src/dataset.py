@@ -57,11 +57,12 @@ class CostmapDataset(Dataset):
         np.random.shuffle(list_IDs)  # randomly shuffle all the data
         train_end = int(config.train_val_test[0] * len(list_IDs))
         val_end = train_end + int(config.train_val_test[1] * len(list_IDs))
+        test_end = val_end + int(config.train_val_test[2] * len(list_IDs))
         list_IDs_train = list_IDs[:train_end]
         list_IDs_val = list_IDs[train_end:val_end]
-        list_IDs_test = list_IDs[val_end:]
+        list_IDs_test = list_IDs[val_end:test_end]
         
-        if self.validation:
+        if self.validation and not self.config.validate_on_train:
             self.imglist = list_IDs_val
         elif self.test:
             self.imglist = list_IDs_test
@@ -107,7 +108,7 @@ class CostmapDataset(Dataset):
         alpha = np.expand_dims(alpha, axis=0)
         # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * 0.5
 
-        alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
+        # alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)

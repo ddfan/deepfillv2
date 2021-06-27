@@ -51,7 +51,7 @@ class CvarLoss(nn.Module):
         return loss_dict
 
     def cvar_calc(self, gt, var, alpha):
-        return torch.clamp(gt - var, min=0.0) / (1.0 - alpha) + var
+        return torch.clamp(gt - var, min=0.0) / (1.0 - torch.clamp(alpha, max=0.99)) + var
 
     def var_huber_loss(self, gt, var, alpha, mask):
         # compute quantile loss
@@ -67,6 +67,10 @@ class CvarLoss(nn.Module):
         loss += torch.logical_not(is_less_huber) * is_neg_err * \
                 (0.5 / self.loss_huber * torch.square((1.0 - alpha) * err) + 0.5 * self.loss_huber)
         loss += is_less_huber * (torch.abs(err) * (1.0 - alpha))
+
+        # loss = is_pos_err * (torch.abs(err) * alpha)
+        # loss += is_neg_err * (torch.abs(err) * (1.0 - alpha))
+
         
         # loss = alpha * torch.clamp(err, min=0) + (1.0 - alpha) * torch.clamp(-err, min=0)
 
