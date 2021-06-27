@@ -9,8 +9,8 @@ finetune: False
 # The state path which you want to resume the training
 resume: False
 resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0627_1053_03/models/model_0002.pth
-# datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
-datasets: ["subway_ground"]
+datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
+# datasets: ["subway_ground"]
 # datasets: ["wells"]
 
 ### TRAINING PARAMETERS ###
