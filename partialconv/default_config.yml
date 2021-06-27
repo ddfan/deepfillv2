@@ -9,14 +9,15 @@ finetune: False
 # The state path which you want to resume the training
 resume: False
 resume_dir: /home/david/Documents/bag_files/cvar_logs/models/ckpt_0626_0909_37_model_0050.pth
-datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
+# datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
+datasets: ["subway_ground"]
 # datasets: ["wells"]
 
 ### TRAINING PARAMETERS ###
 # the number of max iteration
 max_epochs: 200000
 # the batch size
-batch_size: 4
+batch_size: 8
 train_val_test: [0.9, 0.05, 0.05]
 
 ### DATA AUGMENTATION ###
@@ -35,7 +36,7 @@ use_cvar_loss: True
 use_monotonic_loss: True
 monotonic_loss_delta: 0.0001
 loss_huber: 0.001
-var_coef: 100.0
+var_coef: 10.0
 cvar_coef: 1.0
 mono_coef: 1.0e-4
 
@@ -45,6 +46,7 @@ initial_lr: 0.0002
 finetune_lr: 0.0005
 momentum: 0
 weight_decay: 0
+clip: 1.0
 
 ### LOG INTERVALS ###
 # viaulizing the output images

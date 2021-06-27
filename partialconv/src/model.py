@@ -156,7 +156,7 @@ class PConvUNet(nn.Module):
         self.dec_3 = PConvActiv(128 + 64, 64, dec=True, active='leaky')
         self.dec_2 = PConvActiv(64 + 32, 32, dec=True, active='leaky')
         self.dec_1 = PConvActiv(32 + self.in_channels, self.out_channels, dec=True, bn=False,
-                                active='leaky', conv_bias=True)
+                                active=None, conv_bias=True)
 
     def forward(self, img, mask, alpha=None):
         # reshape from flat to proper
@@ -198,10 +198,16 @@ class PConvUNet(nn.Module):
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
 
-        # flatten output
-        feature = torch.reshape(feature, (-1, self.out_channels, self.img_size * self.img_size))
+        # clamp output between 0 and 1, but leaky
+        self.output_layer = nn.LeakyReLU(negative_slope=0.001)
+        output1 = self.output_layer(feature)
+        output2 = torch.clamp(output1, max=1.0)
+        output3 = output2 + 0.001 * torch.clamp(output2, min=0.0)
 
-        return feature
+        # flatten output
+        output = torch.reshape(output3, (-1, self.out_channels, self.img_size * self.img_size))
+
+        return output
 
     def train(self, mode=True):
         """Override the default train() to freeze the BN parameters

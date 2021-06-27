@@ -129,6 +129,7 @@ class Trainer(object):
             # updates the model's params
             self.optimizer.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.clip)
             self.optimizer.step()
 
         if add_graph:

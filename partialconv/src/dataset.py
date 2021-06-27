@@ -107,7 +107,7 @@ class CostmapDataset(Dataset):
         alpha = np.expand_dims(alpha, axis=0)
         # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * 0.5
 
-        alpha = alpha * 0.998 + 0.001  # prevent 0 and 1 for numeric stability
+        alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
 
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
