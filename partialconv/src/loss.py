@@ -265,35 +265,51 @@ if __name__ == '__main__':
     j = 0.5
     Alpha = [0.5, 0.7, 0.9]
     K = 3
-    H = np.linspace(0.2, 0.6, K)
+    H = np.linspace(0.1, 0.3, K)
     colors = ["green", "lime", "cyan"]
-    f, ax = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(6, 2.7))
-
+    f, ax = plt.subplots(2, 3, figsize=(6, 3))
+    for i in range(3):
+        ax[1,i].axis("off")
+    ax = ax[0,:]
     for i, alpha in enumerate(Alpha):
-        lv = v * (1 - alpha) + np.maximum((j - v), 0)
+        err = j - v
+        is_pos_err = v < j
+        is_neg_err = v >= j
 
+        lv = is_pos_err * np.abs(err) * alpha + is_neg_err * np.abs(err) * (1.0 - alpha)
         for k in range(K):
             h = H[k]
-            lh_up = (j + 0.5 / h * np.square(j - v) + 0.5 * h) * (1 - alpha)
-            lh_down = (j + 0.5 / h * np.square(alpha / (1 - alpha) * (j - v)) + 0.5 * h) * (1 - alpha)
+            # lh_up = (j + 0.5 / h * np.square(j - v) + 0.5 * h) * (1 - alpha)
+            # lh_down = (j + 0.5 / h * np.square(alpha / (1 - alpha) * (j - v)) + 0.5 * h) * (1 - alpha)
 
-            case_up = np.logical_and(j <= v, v < j + h)
-            case_down = np.logical_and(j - (1 - alpha) / alpha * h <= v, v < j)
-            case_else = np.logical_not(np.logical_or(case_up, case_down))
+            # case_up = np.logical_and(j <= v, v < j + h)
+            # case_down = np.logical_and(j - (1 - alpha) / alpha * h <= v, v < j)
+            # case_else = np.logical_not(np.logical_or(case_up, case_down))
 
-            lh = case_up * lh_up + case_down * lh_down + case_else * lv
+            # lh = case_up * lh_up + case_down * lh_down + case_else * lv
+
+            is_greater_huber = err >= h / alpha
+            is_less_huber = err <= -h / (1 - alpha)
+
+            lh = is_greater_huber * (np.abs(err) * alpha)
+            lh += np.logical_not(is_greater_huber) * is_pos_err * \
+                    (0.5 / h * np.square(alpha * err) + 0.5 * h)
+            lh += np.logical_not(is_less_huber) * is_neg_err * \
+                    (0.5 / h * np.square((1.0 - alpha) * err) + 0.5 * h)
+            lh += is_less_huber * (np.abs(err) * (1.0 - alpha))
 
             ax[i].plot(v, lh, color=colors[k])
 
         ax[i].plot(v, lv, 'k')
-        ax[i].set_aspect('equal')
-        ax[i].plot([j, j], [0, 1], ':', label="_")
+        # ax[i].set_aspect('equal')
+        ax[i].plot([j, j], [0, 0.4], ':', label="_")
         ax[i].set_title(r'$\alpha=$' + str(alpha), fontsize=10)
         ax[i].get_yaxis().set_ticks([])
-
-    plt.xticks([j], [r'$v = j$'])
-    # plt.ylim(j,0.8+j)
-    # plt.xlim(0,1)
+        ax[i].get_xaxis().set_ticks([0,j,1])
+        ax[i].set_xticklabels([0,'v',1]) 
+        ax[i].text(0.55,0.3,r'v = j')
+        ax[i].set_ylim(0,0.4)
+        ax[i].set_xlim(0,1)
 
     plt.sca(ax[0])
     plt.ylabel(r'$l_h(v)$')
@@ -301,9 +317,9 @@ if __name__ == '__main__':
     leg = [r'$h=$' + str(h) for h in H]
     leg.append(r'$l_v ~ (h=0)$')
 
-    f.legend(leg, bbox_to_anchor=(0.1, 0.), loc="lower left", ncol=4)
+    f.legend(leg, bbox_to_anchor=(0.5, 0.4), loc="center", ncol=4)
     plt.tight_layout()
 
-    # plt.savefig("huber.pdf", bbox_inches="tight")
+    plt.savefig("huber.pdf", borderaxespad=1, bbox_inches="tight")
 
     plt.show()
