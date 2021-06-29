@@ -64,6 +64,7 @@ print_step_losses: False
 show_progress_bar: True
 alpha_test_val: [0.1,0.5,0.9]
 alpha_stats_val: [0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95]
+test_model_based: False
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset

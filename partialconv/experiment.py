@@ -32,6 +32,7 @@ def main(args):
                                 "robot_distance"]
     # config.output_layer = "risk_ground_truth"
     config.output_layer = "risk"
+    config.variance_layer = "risk_variance"
 
     config.ckpt = create_ckpt_dir(config.ckpt_dir_root)
     print("Check Point is '{}'".format(config.ckpt))
@@ -113,9 +114,13 @@ def main(args):
         print("Testing on " + str(len(dataset_test)) + " datapoints.")
         # dataset_test.clean_data()
 
+        if config.test_model_based:
+            dataset_test_variance = CostmapDataset(config, test=True, return_variance=True)
+        else:
+            dataset_test_variance = None
         start_epoch = load_ckpt(config.resume_dir,
                                    [("model", model)])
-        tester = Tester(config, device, model, dataset_test)
+        tester = Tester(config, device, model, dataset_test, dataset_test_variance)
         tester.iterate()
 
 if __name__ == "__main__":

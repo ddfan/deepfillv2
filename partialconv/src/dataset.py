@@ -30,13 +30,14 @@ class AddCustomNoise(object):
         return self.__class__.__name__ + '(mean={0}, std={1}, pepper_noise={2}, )'.format(self.mean, self.std, self.pepper_noise)
 
 class CostmapDataset(Dataset):
-    def __init__(self, config, validation=False, test=False):
+    def __init__(self, config, validation=False, test=False, return_variance=False):
 
         np.random.seed(0)
 
         self.config = config
         self.validation = validation
         self.test = test
+        self.return_variance = return_variance
 
         self.img_transform = transforms.Compose([
                     transforms.RandomAffine(degrees=(0,360),
@@ -110,6 +111,11 @@ class CostmapDataset(Dataset):
 
         # alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
 
+        if self.return_variance:
+            variance = data[self.config.variance_layer]
+            variance = np.nan_to_num(variance)
+            variance = np.expand_dims(variance, axis=0)
+
         #####  Data augmentation ######
         n_layers = len(self.map_layers)
         if self.validation or self.test or not self.config.augment_data:
@@ -117,14 +123,21 @@ class CostmapDataset(Dataset):
             mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
             groundtruth = torch.from_numpy(groundtruth.astype(np.float32)).contiguous()
             alpha = torch.from_numpy(alpha.astype(np.float32)).contiguous()
+
+            if self.return_variance:
+                variance = torch.from_numpy(variance.astype(np.float32)).contiguous()
         else:
             img_mask_gt = np.concatenate([input_img, mask, groundtruth, alpha], axis=0)
+            if self.return_variance:
+                img_mask_gt = np.concatenate([img_mask_gt, variance], axis=0)
             img_mask_gt = torch.from_numpy(img_mask_gt.astype(np.float32)).contiguous()
             img_mask_gt_tf = self.img_transform(img_mask_gt)
             input_img = img_mask_gt_tf[:n_layers,:,:]
             mask = img_mask_gt_tf[n_layers:n_layers+1,:,:]
             groundtruth = img_mask_gt_tf[n_layers+1:n_layers+2,:,:]
             alpha = img_mask_gt_tf[n_layers+2:n_layers+3,:,:]
+            if self.return_variance:
+                variance = img_mask_gt_tf[n_layers+3:n_layers+4,:,:]
 
         #####################################
 
@@ -145,9 +158,13 @@ class CostmapDataset(Dataset):
         input_img = torch.flatten(input_img, start_dim=0)
         mask = torch.flatten(mask, start_dim=0)
         groundtruth = torch.flatten(groundtruth, start_dim=0)
-        alpha = torch.flatten(alpha, start_dim=0)        
+        alpha = torch.flatten(alpha, start_dim=0)
 
-        return input_img, mask, groundtruth, alpha
+        if self.return_variance:
+            variance = torch.flatten(variance, start_dim=0)
+            return input_img, mask, groundtruth, alpha, variance
+        else:
+            return input_img, mask, groundtruth, alpha
 
     def clean_data(self):
         for filename in self.imglist:
