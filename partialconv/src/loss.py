@@ -30,8 +30,8 @@ class CvarLoss(nn.Module):
         var_loss = self.var_huber_loss(gt, var, alpha, mask)
         cvar_calc = self.cvar_calc(gt, var, alpha)
         # need to normalize l1 loss by number of valid error pixels.
-        cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach()) * \
-             torch.sum(mask).detach() / torch.sum(torch.gt(gt,var) * mask).detach()
+        cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach()) # * \
+             # torch.sum(mask).detach() / torch.sum(torch.gt(gt,var) * mask).detach()
 
         loss_dict = {'var': var_loss,
                      'cvar': cvar_loss}
@@ -306,16 +306,16 @@ if __name__ == '__main__':
         ax[i].set_title(r'$\alpha=$' + str(alpha), fontsize=10)
         ax[i].get_yaxis().set_ticks([])
         ax[i].get_xaxis().set_ticks([0,j,1])
-        ax[i].set_xticklabels([0,'v',1]) 
-        ax[i].text(0.55,0.3,r'v = j')
+        ax[i].set_xticklabels([-1,'e',1]) 
+        # ax[i].text(0.55,0.3,r'v = j')
         ax[i].set_ylim(0,0.4)
         ax[i].set_xlim(0,1)
 
     plt.sca(ax[0])
-    plt.ylabel(r'$l_h(v)$')
+    plt.ylabel(r'$l_h(e)$')
     plt.sca(ax[1])
     leg = [r'$h=$' + str(h) for h in H]
-    leg.append(r'$l_v ~ (h=0)$')
+    leg.append(r'$l^V$')
 
     f.legend(leg, bbox_to_anchor=(0.5, 0.4), loc="center", ncol=4)
     plt.tight_layout()

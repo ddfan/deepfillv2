@@ -8,8 +8,9 @@ mode: train
 finetune: False
 # The state path which you want to resume the training
 resume: False
-resume_dir: /home/david/Documents/bag_files/cvar_logs/ckpt_0627_1329_59/models/model_0076.pth
-datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine"]
+# resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1329_59_subway_ground/models/model_0076.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1831_33_alldata_except_wells/models/model_0061.pth
+datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine", "wells"]
 # datasets: ["subway_ground"]
 # datasets: ["wells"]
 
@@ -43,7 +44,7 @@ mono_coef: 1.0e-4
 
 ### OPTIMIZATION PARAMETERS ###
 optim: Adam
-initial_lr: 0.0002
+initial_lr: 0.0005
 finetune_lr: 0.0005
 momentum: 0
 weight_decay: 0
@@ -59,7 +60,7 @@ save_model_interval: 10
 print_step_losses: False
 show_progress_bar: True
 alpha_test_val: [0.1,0.5,0.9]
-alpha_stats_val: [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.99]
+alpha_stats_val: [0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95]
 
 ### DIRECTORY PATH ###
 data_root: /home/david/Documents/bag_files/spot2_lasubway_collision/risk_dataset

@@ -6,9 +6,10 @@ from scipy.ndimage.filters import gaussian_filter
 
 
 class RandomVoronoiMap(object):
-    def __init__(self, img_size=400, num_cells=25, gaussian_sigma=2.0):
+    def __init__(self, img_size=400, min_num_cells = 10, max_num_cells=50, gaussian_sigma=2.0):
         self.img_size = img_size
-        self.num_cells = num_cells
+        self.max_num_cells = max_num_cells
+        self.min_num_cells = min_num_cells
         self.gaussian_sigma = gaussian_sigma
 
     def voronoi_finite_polygons_2d(self, vor, radius=None):
@@ -104,7 +105,8 @@ class RandomVoronoiMap(object):
     def get_random_map(self):
         while True:
             # random points
-            points = np.random.randint(0, high=self.img_size, size=(self.num_cells, 2))
+            num_cells = np.random.randint(self.min_num_cells,self.max_num_cells)
+            points = np.random.randint(0, high=self.img_size, size=(num_cells, 2))
 
             # create regions
             vor = Voronoi(points)
@@ -125,7 +127,7 @@ class RandomVoronoiMap(object):
             map_arr = map_arr.reshape((self.img_size, self.img_size))
 
             # gaussian blur
-            map_arr = gaussian_filter(map_arr, sigma=self.gaussian_sigma)
+            # map_arr = gaussian_filter(map_arr, sigma=self.gaussian_sigma)
 
             # clip image
             map_arr = np.clip(map_arr, 0, 1)

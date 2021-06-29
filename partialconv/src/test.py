@@ -50,22 +50,30 @@ class Tester(object):
         r2_var = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
         r2_cvar = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
 
-        # precompute var and cvar, non-mode lbased 
+        # precompute var and cvar, non-model based 
         var_intercept = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
-        cvar_intercept = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
         for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
-            inputs = inputs.to(device)
             mask = mask.to(device)
             gt = gt.to(device)
-            alpha = alpha.to(device)            
             for i, alpha_val in enumerate(config.alpha_stats_val):
                 var_intercept[step,i] = torch.quantile(gt[mask==1], q=alpha_val)
-                valid_cvar = torch.le(var_intercept[step,i], gt) * mask
-                cvar_intercept[step,i] = torch.sum(valid_cvar * gt) / torch.sum(valid_cvar)
-        
         var_intercept = torch.mean(var_intercept,axis=0)
-        cvar_intercept = torch.mean(cvar_intercept,axis=0)
 
+        cvar_intercept = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
+        cvar_num_valid = torch.zeros((len(dataloader), len(config.alpha_stats_val))).to(device)
+        for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
+            mask = mask.to(device)
+            gt = gt.to(device)
+            for i, alpha_val in enumerate(config.alpha_stats_val):
+                valid_cvar = torch.le(var_intercept[i], gt) * mask
+                cvar_intercept[step,i] = torch.sum(valid_cvar * gt)
+                cvar_num_valid[step,i] = torch.sum(valid_cvar)
+        cvar_intercept = torch.sum(cvar_intercept,axis=0) / torch.sum(cvar_num_valid, axis=0)
+        
+        # clamp these guys to prevent them from both being 1.0, which makes for NaN stats
+        # var_intercept = torch.clamp(var_intercept, max=0.99)
+        # cvar_intercept = torch.clamp(cvar_intercept, max=0.99)
+        
         if self.config.show_progress_bar:
             dataloader = tqdm(dataloader, file=sys.stdout)
         model_time = []
@@ -105,9 +113,11 @@ class Tester(object):
                 # print("var:",i, r2_var_num, r2_var_denom)
 
                 valid_cvar_num = torch.le(var, gt_unflat) * mask_unflat
-                r2_cvar_num = torch.sum(valid_cvar_num * torch.abs(gt_unflat - cvar)) / torch.sum(valid_cvar_num)
+                r2_cvar_num = torch.sum(torch.abs(cvar - \
+                    (var + valid_cvar_num * (gt_unflat - var) / (1.0 - alpha_val))))
                 valid_cvar_denom = torch.le(var_intercept[i], gt_unflat) * mask_unflat
-                r2_cvar_denom = torch.sum(valid_cvar_denom * torch.abs(gt_unflat - cvar_intercept[i])) / torch.sum(valid_cvar_denom)
+                r2_cvar_denom = torch.sum(torch.abs(cvar_intercept[i] - \
+                    (var_intercept[i] + valid_cvar_denom * (gt_unflat - var_intercept[i]) / (1.0 - alpha_val))))
                 # print("cvar:",i, r2_cvar_num, r2_cvar_denom)
                 # if r2_cvar_denom == 0:
                     # r2_cvar[step,i] = 1.0 - r2_cvar_num.detach()
@@ -149,7 +159,7 @@ class Tester(object):
             flierprops={'markerfacecolor': 'k', 'markeredgecolor':'k', 'marker': '.', 'markersize': 1})
         plt.ylabel(r"$VaR~R^2$")
         plt.xlim((min(config.alpha_stats_val)-boxplot_width, max(config.alpha_stats_val)+boxplot_width))
-        # plt.ylim((0,1.0))
+        plt.ylim((0,1.0))
         plt.tick_params(
             axis='x',          # changes apply to the x-axis
             which='both',      # both major and minor ticks are affected
@@ -163,7 +173,7 @@ class Tester(object):
         plt.ylabel(r"$CVaR ~ R^2$")
         plt.xlabel(r"$\alpha$")
         plt.xlim((min(config.alpha_stats_val)-boxplot_width, max(config.alpha_stats_val)+boxplot_width))
-        # plt.ylim((0,1.0))
+        plt.ylim((0, 1.0))
         plt.gca().set_xticklabels([str(alph).lstrip('0') for alph in config.alpha_stats_val])
 
         plt.tight_layout()
