@@ -111,7 +111,7 @@ class InpaintingLoss(nn.Module):
         # default extractor is VGG16
         self.extractor = extractor
 
-    def forward(self, input, mask, output, gt, alpha=None):
+    def forward(self, input, mask, output, gt, alpha=None, output_alpha_plus=None):
         # Non-hole pixels directly set to ground truth
         if self.tv_loss is not None or self.extractor is not None:
             comp = mask * input + (1 - mask) * output
@@ -152,10 +152,10 @@ class InpaintingLoss(nn.Module):
             style_loss = torch.tensor(0.0)
 
         return {'valid': valid_loss,
-                'hole': hole_loss,
-                'perc': perc_loss,
-                'style': style_loss,
-                'tv': tv_loss}
+                'hole': hole_loss}
+                # 'perc': perc_loss,
+                # 'style': style_loss,
+                # 'tv': tv_loss}
 
 
 # The network of extracting the feature for perceptual and style loss

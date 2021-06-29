@@ -34,6 +34,9 @@ layer_size: 4
 use_cvar_less_var: True
 
 ### LOSS PARAMETERS ###
+hole_coef: 1.0
+valid_coef: 1.0
+
 use_cvar_loss: True
 use_monotonic_loss: True
 monotonic_loss_delta: 0.0001
