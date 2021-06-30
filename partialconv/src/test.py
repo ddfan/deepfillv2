@@ -40,6 +40,8 @@ class Tester(object):
         print('Computing statistics...')
         if self.dataset_test_variance is not None:
             self.compute_statistics_model_based_cvar(self.dataset_test_variance)
+        elif self.config.test_average_data:
+            self.compute_average_statistics_cvar(self.dataset_test)
         elif self.config.use_cvar_loss:
             self.compute_statistics_cvar(self.dataset_test)
         else:
@@ -68,14 +70,22 @@ class Tester(object):
 
         return var_intercept, cvar_intercept
 
+    def save_stats(self, alpha_implied=None, r2_var=None, r2_cvar=None):
+        data_dict = {'alpha_implied': alpha_implied, 'r2_var': r2_var, 'r2_cvar': r2_cvar}
+        np.save(self.config.ckpt_dir_root + '/stats/' + self.config.datasets[0] + '.npy', data_dict)
+
     def plot_stats(self, title="Test Performance", tag="stats", alpha_implied=None, r2_var=None, r2_cvar=None):
         # make statistics plot
         boxplot_width = 0.03
         fig = plt.figure(figsize=(4, 4), dpi=150)
 
         plt.subplot(311)
-        plt.boxplot(alpha_implied, positions=self.config.alpha_stats_val, widths=boxplot_width,
-            flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        if len(alpha_implied.shape) == 2:
+            plt.boxplot(alpha_implied, positions=self.config.alpha_stats_val, widths=boxplot_width,
+                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        else:
+            plt.plot(self.config.alpha_stats_val, alpha_implied)
+
         plt.ylabel(r'$Implied ~\alpha$')
         plt.title(title)
         plt.xlim((min(self.config.alpha_stats_val) - boxplot_width, max(self.config.alpha_stats_val) + boxplot_width))
@@ -88,8 +98,12 @@ class Tester(object):
             labelbottom=False)  # labels along the bottom edge are off
 
         plt.subplot(312)
-        plt.boxplot(r2_var, positions=self.config.alpha_stats_val, widths=boxplot_width,
-            flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        if len(r2_var.shape) == 2:
+            plt.boxplot(r2_var, positions=self.config.alpha_stats_val, widths=boxplot_width,
+                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        else:
+            plt.plot(self.config.alpha_stats_val, r2_var)
+            
         plt.ylabel(r"$VaR~R^2$")
         plt.xlim((min(self.config.alpha_stats_val) - boxplot_width, max(self.config.alpha_stats_val) + boxplot_width))
         plt.ylim((0, 1.0))
@@ -101,8 +115,12 @@ class Tester(object):
             labelbottom=False)  # labels along the bottom edge are off
 
         plt.subplot(313)
-        plt.boxplot(r2_cvar, positions=self.config.alpha_stats_val, widths=boxplot_width,
-            flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        if len(r2_cvar.shape) == 2:
+            plt.boxplot(r2_cvar, positions=self.config.alpha_stats_val, widths=boxplot_width,
+                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+        else:
+            plt.plot(self.config.alpha_stats_val, r2_cvar)
+
         plt.ylabel(r"$CVaR ~ R^2$")
         plt.xlabel(r"$\alpha$")
         plt.xlim((min(self.config.alpha_stats_val) - boxplot_width, max(self.config.alpha_stats_val) + boxplot_width))
@@ -268,6 +286,84 @@ class Tester(object):
         alpha_implied = alpha_implied.detach().cpu().numpy()
         r2_var = r2_var.detach().cpu().numpy()
         r2_cvar = r2_cvar.detach().cpu().numpy()
+
+        self.plot_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
+
+    def compute_average_statistics_cvar(self, dataset):
+        self.model.eval()
+
+        dataloader = DataLoader(dataset,
+                               batch_size=1,
+                               shuffle=False)
+
+        var_intercept, cvar_intercept = self.compute_constant_quantiles(dataloader)
+
+        # compute statistics for var and cvar estimates
+        n_samples = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        n_gt_less_than_var = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_var = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+
+        if self.config.show_progress_bar:
+            dataloader = tqdm(dataloader, file=sys.stdout)
+        model_time = []
+        r2_var_num = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_var_denom = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar_num = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar_denom = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
+            inputs = inputs.to(self.device)
+            mask = mask.to(self.device)
+            gt = gt.to(self.device)
+            alpha = alpha.to(self.device)
+            mask_unflat = torch.reshape(mask, (-1, 1, self.config.img_size, self.config.img_size))
+            gt_unflat = torch.reshape(gt, (-1, 1, self.config.img_size, self.config.img_size))
+            alpha_unflat = torch.reshape(alpha, (-1, 1, self.config.img_size, self.config.img_size))
+
+            for i, alpha_val in enumerate(self.config.alpha_stats_val):
+                alpha_test = torch.ones_like(alpha) * alpha_val
+
+                start_time = time.time()
+                with torch.no_grad():
+                    output = self.model(inputs, mask, alpha_test)
+                model_time.append(time.time() - start_time)
+
+                output = torch.reshape(output, (-1, self.config.out_channels, self.config.img_size, self.config.img_size))
+
+                if self.config.use_cvar_less_var:
+                    var = output[:, 0:1, :, :]
+                    cvar = output[:, 0:1, :, :] + output[:, 1:2, :, :]
+                else:
+                    var = output[:, 0:1, :, :]
+                    cvar = output[:, 1:2, :, :]
+
+                n_samples[i] += torch.sum(mask_unflat)
+                n_gt_less_than_var[i] += torch.sum(mask_unflat * torch.lt(gt_unflat, var))
+
+                r2_var_num[i] += torch.sum(mask_unflat * (alpha_val * torch.clamp(gt_unflat - var, min=0) +
+                    (1 - alpha_val) * torch.clamp(var - gt_unflat, min=0))).detach()
+                r2_var_denom[i] += torch.sum(mask_unflat * (alpha_val * torch.clamp(gt_unflat - var_intercept[i], min=0) +
+                    (1 - alpha_val) * torch.clamp(var_intercept[i] - gt_unflat, min=0))).detach()
+                # print("var:",i, r2_var_num, r2_var_denom)
+
+                valid_cvar_num = torch.le(var, gt_unflat) * mask_unflat
+                r2_cvar_num[i] += torch.sum(torch.abs(cvar -
+                    (var + valid_cvar_num * (gt_unflat - var) / (1.0 - alpha_val))))
+                valid_cvar_denom = torch.le(var_intercept[i], gt_unflat) * mask_unflat
+                r2_cvar_denom[i] += torch.sum(torch.abs(cvar_intercept[i] -
+                    (var_intercept[i] + valid_cvar_denom * (gt_unflat - var_intercept[i]) / (1.0 - alpha_val))))
+
+        r2_var = 1.0 - r2_var_num / r2_var_denom
+        r2_cvar = 1.0 - r2_cvar_num.detach() / r2_cvar_denom.detach()
+
+        print("cvar model query time: ", str(np.mean(model_time)), str(np.std(model_time)), str(len(model_time)))
+
+        alpha_implied = n_gt_less_than_var / n_samples
+        alpha_implied = alpha_implied.detach().cpu().numpy()
+        r2_var = r2_var.detach().cpu().numpy()
+        r2_cvar = r2_cvar.detach().cpu().numpy()
+
+        self.save_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
 
         self.plot_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
 
