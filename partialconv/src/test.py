@@ -181,7 +181,7 @@ class Tester(object):
                 # r2_var[step,i] = 1.0 - cvar_mse[step,i] * torch.sum(mask_unflat) / \
                     # torch.sum(torch.square((gt_unflat - gt_mean) * mask_unflat)).detach()
 
-        print("l1 loss model query time: ", str(np.mean(model_time)), str(np.var(model_time)), str(len(model_time)))        
+        print("l1 loss model query time: ", str(np.mean(model_time)), str(np.std(model_time)), str(len(model_time)))        
 
         alpha_implied = n_gt_less_than_var / n_samples
         alpha_implied = alpha_implied.detach().cpu().numpy()
@@ -262,7 +262,7 @@ class Tester(object):
                 # r2_var[step,i] = 1.0 - cvar_mse[step,i] * torch.sum(mask_unflat) / \
                     # torch.sum(torch.square((gt_unflat - gt_mean) * mask_unflat)).detach()
 
-        print("cvar model query time: ", str(np.mean(model_time)), str(np.var(model_time)), str(len(model_time)))        
+        print("cvar model query time: ", str(np.mean(model_time)), str(np.std(model_time)), str(len(model_time)))        
 
         alpha_implied = n_gt_less_than_var / n_samples
         alpha_implied = alpha_implied.detach().cpu().numpy()
