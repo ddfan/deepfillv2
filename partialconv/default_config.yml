@@ -12,7 +12,7 @@ resume: True
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1329_59_subway_ground/models/model_0076.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1831_33_alldata_except_wells/models/model_0061.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0628_2212_07_l1loss_alldata/models/model_0100.pth
-resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0629_0443_28/model_0060.pth
+resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0629_0443_28/models/model_0060.pth
 datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine", "wells"]
 # datasets: ["subway_ground"]
 # datasets: ["subway_basement"]
