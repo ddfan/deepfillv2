@@ -37,7 +37,7 @@ def visualize_l1loss(model, config, writer, device, dataset, filename=None, epoc
     writer.add_image('images', grid, epoch)
 
     if filename is not None:
-        save_image(grid, filename)
+        save_image(grid, filename + ".png")
 
 
 def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=0):
@@ -78,8 +78,8 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     for i in range(len(config.alpha_test_val)):
         if config.use_cvar_less_var:
             var = outputs[i][:, 0:1, :, :]
-            # cvar = outputs[i][:, 0:1, :, :] + outputs[i][:, 1:2, :, :]
-            cvar = outputs[i][:, 1:2, :, :]
+            cvar = outputs[i][:, 0:1, :, :] + outputs[i][:, 1:2, :, :]
+            # cvar = outputs[i][:, 1:2, :, :]
         else:
             var = outputs[i][:, 0:1, :, :]
             cvar = outputs[i][:, 1:2, :, :]
@@ -100,26 +100,51 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     # alpha = torch.reshape(alpha, (-1, 1, config.img_size, config.img_size))
     if config.use_cvar_less_var:
         varying_cvar = outputs[-1][:, 0:1, :, :] + outputs[-1][:, 1:2, :, :]
+        varying_cvar -= cvars[:,0:1,:,:]
+        # varying_cvar = outputs[-1][:, 1:2, :, :]
     else:
         varying_cvar = outputs[-1][:, 1:2, :, :]
-    img_arr = torch.cat([gt, vars, cvars, varying_cvar * mask], dim=1)
+    img_arr = torch.cat([gt,cvars,cvars-vars[:,0:1,:,:],varying_cvar * mask], dim=1)
 
     # create matplotlib figure
     img_arr_np = img_arr.cpu().detach().numpy()
     f, ax = plt.subplots(img_arr_np.shape[0], img_arr_np.shape[1],
         figsize=(img_arr_np.shape[1] * 2, img_arr_np.shape[0] * 2))
     f.tight_layout()
+    cvar_start_idx = gt.shape[1] + vars.shape[1]
+    cvar_end_idx = gt.shape[1] + vars.shape[1] + cvars.shape[1]
     for i in range(img_arr_np.shape[0]):
         for j in range(img_arr_np.shape[1]):
+            # if j >= cvar_start_idx and j < cvar_end_idx:
+            #     vmax = None
+            #     # print(np.max(img_arr_np[i,j,:,:]))
+            # else:
+            #     vmax = 1
             ax[i, j].imshow(img_arr_np[i, j, :, :], vmin=0, vmax=1)
             ax[i, j].axis('off')
             ax[i, j].set_aspect('equal')
     f.subplots_adjust(wspace=0, hspace=0)
 
+    if filename is not None:
+        plt.savefig(filename + "_output.png", dpi=300)
+
     writer.add_figure('output', f, epoch)
 
     # create input figure
-    inputs_img = torch.cat((inputs, mask, alpha), dim=1)
+
+    # normalize inputs
+    elevation_copy = inputs[:, config.input_map_layers.index("elevation"), ...].clone()
+    elevation_copy[elevation_copy == 0] = float("nan")
+    median_elevation = elevation_copy.nanmedian(axis=-1)[0].nanmedian(axis=-1)[0].nan_to_num()
+    for i, layer in enumerate(config.input_map_layers):
+        if "num_points" in layer:
+            inputs[:, i, ...] = 1.0 - torch.exp(-inputs[:, i, ...] / 1.0)
+        elif "elevation" in layer:
+            inputs[:, i, ...] = inputs[:, i, ...] - median_elevation.reshape((-1, 1, 1))
+        elif "distance" in layer:
+            inputs[:, i, ...] = inputs[:, i, ...] / 25.0
+
+    inputs_img = torch.cat((inputs*mask, mask, alpha), dim=1)
     inputs_np = inputs_img.cpu().detach().numpy()
     f, ax = plt.subplots(inputs_np.shape[0], inputs_np.shape[1],
         figsize=(inputs_np.shape[1] * 2, inputs_np.shape[0] * 2))
@@ -131,7 +156,8 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
             ax[i, j].set_aspect('equal')
     f.subplots_adjust(wspace=0, hspace=0)
 
+    if filename is not None:
+        plt.savefig(filename + "_input.png", dpi=300)
+
     writer.add_figure('input', f, epoch)
 
-    if filename is not None:
-        plt.savefig(filename)
