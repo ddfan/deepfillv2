@@ -51,10 +51,6 @@ class CostmapDataset(Dataset):
                                             gaussian_sigma=15.0)
 
         list_IDs = get_jpgs(config.data_root)
-
-        # prune datas that dont match datasets
-        list_IDs = [s for s in list_IDs if any([dataset in s for dataset in config.datasets])]
-
         np.random.shuffle(list_IDs)  # randomly shuffle all the data
         train_end = int(config.train_val_test[0] * len(list_IDs))
         val_end = train_end + int(config.train_val_test[1] * len(list_IDs))
@@ -62,6 +58,11 @@ class CostmapDataset(Dataset):
         list_IDs_train = list_IDs[:train_end]
         list_IDs_val = list_IDs[train_end:val_end]
         list_IDs_test = list_IDs[val_end:test_end]
+
+        # prune datas that dont match datasets
+        list_IDs_train = [s for s in list_IDs_train if any([dataset in s for dataset in config.datasets])]
+        list_IDs_val = [s for s in list_IDs_val if any([dataset in s for dataset in config.datasets])]
+        list_IDs_test = [s for s in list_IDs_test if any([dataset in s for dataset in config.datasets])]
         
         if self.validation and not self.config.validate_on_train:
             self.imglist = list_IDs_val

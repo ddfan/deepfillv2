@@ -70,9 +70,13 @@ class Tester(object):
 
         return var_intercept, cvar_intercept
 
-    def save_stats(self, alpha_implied=None, r2_var=None, r2_cvar=None):
-        data_dict = {'alpha_implied': alpha_implied, 'r2_var': r2_var, 'r2_cvar': r2_cvar}
-        np.save(self.config.ckpt_dir_root + '/stats/' + self.config.datasets[0] + '.npy', data_dict)
+    def save_stats(self, alpha_implied=None, r2_var=None, r2_cvar=None, n_samples=None):
+        data_dict = {'alpha_implied': alpha_implied,
+                     'r2_var': r2_var,
+                     'r2_cvar': r2_cvar,
+                     'n_samples': n_samples}
+
+        np.save(self.config.ckpt_dir_root + '/stats/' + self.config.datasets[0] + '.npy', data_dict, allow_pickle=True)
 
     def plot_stats(self, title="Test Performance", tag="stats", alpha_implied=None, r2_var=None, r2_cvar=None):
         # make statistics plot
@@ -82,7 +86,7 @@ class Tester(object):
         plt.subplot(311)
         if len(alpha_implied.shape) == 2:
             plt.boxplot(alpha_implied, positions=self.config.alpha_stats_val, widths=boxplot_width,
-                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+                flierprops={'markerfacecolor': 'r', 'markeredgecolor': 'r', 'marker': '.', 'markersize': 1})
         else:
             plt.plot(self.config.alpha_stats_val, alpha_implied)
 
@@ -100,7 +104,7 @@ class Tester(object):
         plt.subplot(312)
         if len(r2_var.shape) == 2:
             plt.boxplot(r2_var, positions=self.config.alpha_stats_val, widths=boxplot_width,
-                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+                flierprops={'markerfacecolor': 'r', 'markeredgecolor': 'r', 'marker': '.', 'markersize': 1})
         else:
             plt.plot(self.config.alpha_stats_val, r2_var)
             
@@ -117,7 +121,7 @@ class Tester(object):
         plt.subplot(313)
         if len(r2_cvar.shape) == 2:
             plt.boxplot(r2_cvar, positions=self.config.alpha_stats_val, widths=boxplot_width,
-                flierprops={'markerfacecolor': 'k', 'markeredgecolor': 'k', 'marker': '.', 'markersize': 1})
+                flierprops={'markerfacecolor': 'r', 'markeredgecolor': 'r', 'marker': '.', 'markersize': 1})
         else:
             plt.plot(self.config.alpha_stats_val, r2_cvar)
 
@@ -356,14 +360,18 @@ class Tester(object):
         r2_var = 1.0 - r2_var_num / r2_var_denom
         r2_cvar = 1.0 - r2_cvar_num.detach() / r2_cvar_denom.detach()
 
-        print("cvar model query time: ", str(np.mean(model_time)), str(np.std(model_time)), str(len(model_time)))
+        # print(var_intercept, cvar_intercept)
+        # print(r2_cvar_num, r2_cvar_denom)
+        # print(n_gt_less_than_var, n_samples)
 
         alpha_implied = n_gt_less_than_var / n_samples
         alpha_implied = alpha_implied.detach().cpu().numpy()
         r2_var = r2_var.detach().cpu().numpy()
         r2_cvar = r2_cvar.detach().cpu().numpy()
 
-        self.save_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
+        print("cvar model query time: ", str(np.mean(model_time)), str(np.std(model_time)), str(len(model_time)))
+        
+        self.save_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar, n_samples=len(dataloader))
 
         self.plot_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
 
