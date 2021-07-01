@@ -106,14 +106,17 @@ class CostmapDataset(Dataset):
         ####  Set Alpha ######
         # create random image of alphas
         # alpha = self.voronoi_map.get_random_map()
-        # alpha = self.voronoi_map.get_random_gaussian_map()
-        robot_dist = data["robot_distance"]
-        max_dist = 20.0
-        min_dist = 5.0
-        robot_dist[robot_dist > max_dist] = max_dist
-        robot_dist[robot_dist < min_dist] = min_dist
-        alpha = -(robot_dist - min_dist) / (max_dist - min_dist) + 1.0
+        alpha = self.voronoi_map.get_random_gaussian_map()
+        
+        # robot_dist = data["robot_distance"]
+        # max_dist = 20.0
+        # min_dist = 5.0
+        # robot_dist[robot_dist > max_dist] = max_dist
+        # robot_dist[robot_dist < min_dist] = min_dist
+        # alpha = -(robot_dist - min_dist) / (max_dist - min_dist) + 1.0
+        
         alpha = np.expand_dims(alpha, axis=0)
+
         # alpha = np.ones((1, self.config.img_size, self.config.img_size)) * 0.5
 
         # alpha = alpha * 0.98 + 0.01  # prevent 0 and 1 for numeric stability
