@@ -8,12 +8,12 @@ mode: train
 # if you want to turn off the fine-tuning mode Set to .
 finetune: False
 # The state path which you want to resume the training
-resume: False
+resume: True
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0628_2212_07_l1loss_alldata/models/model_0100.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1329_59_subway_ground/models/model_0076.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1831_33_alldata_except_wells/models/model_0061.pth
 # resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0629_0443_28/models/model_0060.pth
-resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0630_1005_50/models/model_0030.pth
+resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0701_0836_04/models/model_0070.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0629_0443_28_alldata/models/model_0060.pth
 
 # datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine", "wells"]
