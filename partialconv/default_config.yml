@@ -8,16 +8,17 @@ mode: train
 # if you want to turn off the fine-tuning mode Set to .
 finetune: False
 # The state path which you want to resume the training
-resume: True
+resume: False
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0628_2212_07_l1loss_alldata/models/model_0100.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1329_59_subway_ground/models/model_0076.pth
 # resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0627_1831_33_alldata_except_wells/models/model_0061.pth
 # resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0629_0443_28/models/model_0060.pth
-resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0701_0836_04/models/model_0070.pth
-# resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0629_0443_28_alldata/models/model_0060.pth
+# resume_dir: /content/gdrive/MyDrive/colab/spot_cvar/training_logs/ckpt_0701_0836_04/models/model_0070.pth
+resume_dir: /home/david/Documents/bag_files/cvar_logs/good/ckpt_0629_0443_28_alldata/models/model_0060.pth
+# resume_dir: /home/david/Documents/bag_files/cvar_logs/good/alldata_except_subway_ground_ckpt_0703_0732_16_model_0094.pth
 
-# datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine", "wells"]
-datasets: ["kymine", "mammoth", "subway_basement", "valentine", "wells"]
+datasets: ["kymine", "mammoth", "subway_basement", "subway_ground", "valentine", "wells"]
+# datasets: ["kymine", "mammoth", "subway_basement", "valentine", "wells"]
 # datasets: ["subway_ground"]
 # datasets: ["subway_basement"]
 # datasets: ["mammoth"]
@@ -48,7 +49,8 @@ use_cvar_less_var: True
 hole_coef: 1.0
 valid_coef: 1.0
 
-use_cvar_loss: True
+use_cvar_loss: False
+use_negloglike_loss: True
 use_monotonic_loss: True
 monotonic_loss_delta: 0.0001
 loss_huber: 0.001

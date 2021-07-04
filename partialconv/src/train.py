@@ -70,6 +70,8 @@ class Trainer(object):
             # save visualization
             if self.config.use_cvar_loss:
                 visualize_cvar(self.model, self.config, self.val_writer, self.device, self.dataset_val, epoch=self.epoch)
+            elif self.config.use_negloglike_loss:
+                visualize_negloglike(self.model, self.config, self.val_writer, self.device, self.dataset_val, epoch=self.epoch)
             else:
                 visualize_l1loss(self.model, self.config, self.val_writer, self.device, self.dataset_val, epoch=self.epoch)
 

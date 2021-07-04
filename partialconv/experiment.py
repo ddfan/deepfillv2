@@ -6,7 +6,7 @@ from torchvision import transforms
 
 from src.dataset import CostmapDataset
 from src.model import PConvUNet
-from src.loss import InpaintingLoss, CvarLoss
+from src.loss import InpaintingLoss, CvarLoss, NegloglikeLoss
 from src.train import Trainer
 from src.utils import Config, load_ckpt, create_ckpt_dir
 from src.test import Tester
@@ -74,6 +74,8 @@ def main(args):
         #                            tv_loss=config.tv_loss).to(device)
         if config.use_cvar_loss:
             criterion = CvarLoss(config).to(device)
+        elif config.use_negloglike_loss:
+            criterion = NegloglikeLoss(config).to(device)
         else:
             criterion = InpaintingLoss().to(device)
 

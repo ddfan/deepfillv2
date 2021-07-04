@@ -103,6 +103,25 @@ class CvarLoss(nn.Module):
 
         return torch.mean(result * mask)
 
+
+class NegloglikeLoss(nn.Module):
+    def __init__(self, config):
+        super(NegloglikeLoss, self).__init__()
+        self.img_size = config.img_size
+        self.gaussian_nll_loss = nn.GaussianNLLLoss(reduction='none')
+
+    def forward(self, input, mask, output, gt, alpha=None, output_alpha_plus=None):
+        mask = torch.reshape(mask, (-1, 1, self.img_size, self.img_size))
+        gt = torch.reshape(gt, (-1, 1, self.img_size, self.img_size))
+        mean_and_var = torch.reshape(output, (-1, 2, self.img_size, self.img_size))
+        mean = mean_and_var[:, 0, :, :]
+        var = mean_and_var[:, 1, :, :]
+
+        # Valid Pixel Loss
+        valid_loss = torch.sum(self.gaussian_nll_loss(mean, gt, var) * mask) / torch.sum(mask)
+
+        return {'valid': valid_loss}
+
 class InpaintingLoss(nn.Module):
     def __init__(self, extractor=None, tv_loss=None):
         super(InpaintingLoss, self).__init__()

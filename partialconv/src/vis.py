@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
+import scipy.stats
 
 
 def visualize_l1loss(model, config, writer, device, dataset, filename=None, epoch=0):
@@ -38,7 +39,6 @@ def visualize_l1loss(model, config, writer, device, dataset, filename=None, epoc
 
     if filename is not None:
         save_image(grid, filename + ".png")
-
 
 def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=0):
     model.eval()
@@ -151,7 +151,7 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
     f.tight_layout()
     for i in range(inputs_np.shape[0]):
         for j in range(inputs_np.shape[1]):
-            ax[i, j].imshow(inputs_np[i, j, :, :])
+            ax[i, j].imshow(inputs_np[i, j, :, :], vmin=0, vmax=1)
             ax[i, j].axis('off')
             ax[i, j].set_aspect('equal')
     f.subplots_adjust(wspace=0, hspace=0)
@@ -161,3 +161,85 @@ def visualize_cvar(model, config, writer, device, dataset, filename=None, epoch=
 
     writer.add_figure('input', f, epoch)
 
+
+def visualize_negloglike(model, config, writer, device, dataset, filename=None, epoch=0):
+    model.eval()
+    inputs, mask, gt, alpha = zip(*[dataset[i] for i in range(min(len(dataset), config.num_vis_imgs))])
+    inputs = torch.stack(inputs)
+    mask = torch.stack(mask)
+    gt = torch.stack(gt)
+    alpha = torch.stack(alpha)
+
+    with torch.no_grad():
+        output = model(inputs.to(device), mask.to(device), alpha.to(device))
+        output = output.to(torch.device('cpu'))
+        output = torch.reshape(output, (-1, config.out_channels, config.img_size, config.img_size))
+
+    # unflatten images
+    inputs = torch.reshape(inputs, (-1, config.in_channels, config.img_size, config.img_size))
+    mask = torch.reshape(mask, (-1, 1, config.img_size, config.img_size))
+    gt = torch.reshape(gt, (-1, 1, config.img_size, config.img_size))
+    alpha = torch.reshape(alpha, (-1, 1, config.img_size, config.img_size))
+
+    # assemble mean, var, and cvar images
+    cvars = []
+    mean = output[:, 0:1, :, :] * mask
+    var = output[:, 1:2, :, :] * mask
+
+    for i, alpha_val in enumerate(config.alpha_test_val):
+        # compute model-based cvar
+        quantile = scipy.stats.norm.ppf(alpha_val)
+        var_scale = scipy.stats.norm.pdf(quantile) / (1. - alpha_val)
+        cvar = mean + var * var_scale
+        cvars.append(cvar)
+    cvars = torch.cat(cvars, dim=1)
+
+    img_arr = torch.cat([gt, mean, var, cvars], dim=1)
+    # create matplotlib figure
+    img_arr_np = img_arr.cpu().detach().numpy()
+    f, ax = plt.subplots(img_arr_np.shape[0], img_arr_np.shape[1],
+        figsize=(img_arr_np.shape[1] * 2, img_arr_np.shape[0] * 2))
+    f.tight_layout()
+    for i in range(img_arr_np.shape[0]):
+        for j in range(img_arr_np.shape[1]):
+            im = ax[i, j].imshow(img_arr_np[i, j, :, :])
+            ax[i, j].axis('off')
+            ax[i, j].set_aspect('equal')
+            # ax[i,j].text(0,0,"zlim: {:.3f},{:.3f}".format(np.min(img_arr_np[i, j, :, :]),np.max(img_arr_np[i, j, :, :])))
+    f.subplots_adjust(wspace=0, hspace=0)
+
+    if filename is not None:
+        plt.savefig(filename + "_output.png", dpi=300)
+
+    writer.add_figure('output', f, epoch)
+
+    # create input figure
+
+    # normalize inputs
+    elevation_copy = inputs[:, config.input_map_layers.index("elevation"), ...].clone()
+    elevation_copy[elevation_copy == 0] = float("nan")
+    median_elevation = elevation_copy.nanmedian(axis=-1)[0].nanmedian(axis=-1)[0].nan_to_num()
+    for i, layer in enumerate(config.input_map_layers):
+        if "num_points" in layer:
+            inputs[:, i, ...] = 1.0 - torch.exp(-inputs[:, i, ...] / 1.0)
+        elif "elevation" in layer:
+            inputs[:, i, ...] = inputs[:, i, ...] - median_elevation.reshape((-1, 1, 1))
+        elif "distance" in layer:
+            inputs[:, i, ...] = inputs[:, i, ...] / 25.0
+
+    inputs_img = torch.cat((inputs * mask, mask, alpha), dim=1)
+    inputs_np = inputs_img.cpu().detach().numpy()
+    f, ax = plt.subplots(inputs_np.shape[0], inputs_np.shape[1],
+        figsize=(inputs_np.shape[1] * 2, inputs_np.shape[0] * 2))
+    f.tight_layout()
+    for i in range(inputs_np.shape[0]):
+        for j in range(inputs_np.shape[1]):
+            ax[i, j].imshow(inputs_np[i, j, :, :])
+            ax[i, j].axis('off')
+            ax[i, j].set_aspect('equal')
+    f.subplots_adjust(wspace=0, hspace=0)
+
+    if filename is not None:
+        plt.savefig(filename + "_input.png", dpi=300)
+
+    writer.add_figure('input', f, epoch)

@@ -136,6 +136,7 @@ class PConvUNet(nn.Module):
         self.img_size = config.img_size
         self.map_layers = config.input_map_layers
         self.use_cvar_loss = config.use_cvar_loss
+        self.use_negloglike_loss = config.use_negloglike_loss
         self.print_sizes = False
         n_feat = 256
 
@@ -198,11 +199,28 @@ class PConvUNet(nn.Module):
             if self.print_sizes:
                 print(feature.size(), update_mask.size())
 
-        # clamp output between 0 and 1, but leaky
-        self.output_layer = nn.LeakyReLU(negative_slope=0.001)
-        output1 = self.output_layer(feature)
-        output2 = torch.clamp(output1, max=1.0)
-        output3 = output2 + 0.001 * torch.clamp(output2, min=0.0)
+        if self.use_negloglike_loss:
+            mean = feature[:, 0:1, ...]
+            var = feature[:, 1:2, ...]
+
+            # clamp mean between 0 and 1, but leaky
+            self.output_layer = nn.LeakyReLU(negative_slope=0.001)
+            mean1 = self.output_layer(mean)
+            mean2 = torch.clamp(mean1, max=1.0)
+            mean3 = mean2 + 0.001 * torch.clamp(mean2, min=0.0)
+
+            # clamp variance to be positive
+            var1 = torch.clamp(var, min=0.001)
+
+            # combine
+            output3 = torch.cat((mean3, var1), 1)
+
+        else:
+            # clamp output between 0 and 1, but leaky
+            self.output_layer = nn.LeakyReLU(negative_slope=0.001)
+            output1 = self.output_layer(feature)
+            output2 = torch.clamp(output1, max=1.0)
+            output3 = output2 + 0.001 * torch.clamp(output2, min=0.0)
 
         # flatten output
         output = torch.reshape(output3, (-1, self.out_channels, self.img_size * self.img_size))
