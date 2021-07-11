@@ -48,6 +48,8 @@ class Tester(object):
                 self.compute_average_statistics_cvar(self.dataset_test)
             else:
                 self.compute_statistics_cvar(self.dataset_test)
+        elif self.config.use_negloglike_loss:
+            self.compute_average_statistics_negloglike(self.dataset_test)
         else:
             if self.config.test_average_data:
                 self.compute_average_statistics_l1loss(self.dataset_test)
@@ -595,6 +597,81 @@ class Tester(object):
 
         r2_var = 1.0 - r2_var_num / r2_var_denom
         r2_cvar = 1.0 - r2_cvar_num.detach() / r2_cvar_denom.detach()
+
+        alpha_implied = n_gt_less_than_var / n_samples
+        alpha_implied = alpha_implied.detach().cpu().numpy()
+        r2_var = r2_var.detach().cpu().numpy()
+        r2_cvar = r2_cvar.detach().cpu().numpy()
+
+        self.save_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar, n_samples=len(dataloader))
+
+        self.plot_stats(alpha_implied=alpha_implied, r2_var=r2_var, r2_cvar=r2_cvar)
+
+    def compute_average_statistics_negloglike(self, dataset):
+        self.model.eval()
+
+        dataloader = DataLoader(dataset,
+                               batch_size=1,
+                               shuffle=False)
+
+        var_intercept, cvar_intercept = self.compute_constant_quantiles(dataloader)
+
+        # compute statistics for var and cvar estimates
+        n_samples = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        n_gt_less_than_var = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_var = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+
+        if self.config.show_progress_bar:
+            dataloader = tqdm(dataloader, file=sys.stdout)
+        model_time = []
+        r2_var_num = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_var_denom = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar_num = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        r2_cvar_denom = torch.zeros(len(self.config.alpha_stats_val)).to(self.device)
+        for step, (inputs, mask, gt, alpha) in enumerate(dataloader):
+            inputs = inputs.to(self.device)
+            mask = mask.to(self.device)
+            gt = gt.to(self.device)
+            alpha = alpha.to(self.device)
+            mask_unflat = torch.reshape(mask, (-1, 1, self.config.img_size, self.config.img_size))
+            gt_unflat = torch.reshape(gt, (-1, 1, self.config.img_size, self.config.img_size))
+            alpha_unflat = torch.reshape(alpha, (-1, 1, self.config.img_size, self.config.img_size))
+
+            output = self.model(inputs, mask, alpha)
+            output = torch.reshape(output, (-1, self.config.out_channels, self.config.img_size, self.config.img_size))
+
+            mean = output[:, 0:1, :, :] * mask_unflat
+            var = output[:, 1:2, :, :] * mask_unflat
+
+            for i, alpha_val in enumerate(self.config.alpha_stats_val):
+                quantile = scipy.stats.norm.ppf(alpha_val)
+                var_scale = scipy.stats.norm.pdf(quantile) / (1. - alpha_val)
+                cvar = (mean + var * var_scale).detach()
+                var = (mean + quantile * var).detach()
+
+                n_samples[i] += torch.sum(mask_unflat)
+                n_gt_less_than_var[i] += torch.sum(mask_unflat * torch.lt(gt_unflat, var))
+
+                r2_var_num[i] += torch.sum(mask_unflat * (alpha_val * torch.clamp(gt_unflat - var, min=0) +
+                    (1 - alpha_val) * torch.clamp(var - gt_unflat, min=0))).detach()
+                r2_var_denom[i] += torch.sum(mask_unflat * (alpha_val * torch.clamp(gt_unflat - var_intercept[i], min=0) +
+                    (1 - alpha_val) * torch.clamp(var_intercept[i] - gt_unflat, min=0))).detach()
+                # print("var:",i, r2_var_num, r2_var_denom)
+
+                valid_cvar_num = torch.le(var, gt_unflat) * mask_unflat
+                r2_cvar_num[i] += torch.sum(torch.abs(cvar -
+                    (var + valid_cvar_num * (gt_unflat - var) / (1.0 - alpha_val))))
+                valid_cvar_denom = torch.le(var_intercept[i], gt_unflat) * mask_unflat
+                r2_cvar_denom[i] += torch.sum(torch.abs(cvar_intercept[i] -
+                    (var_intercept[i] + valid_cvar_denom * (gt_unflat - var_intercept[i]) / (1.0 - alpha_val))))
+
+        r2_var = 1.0 - r2_var_num / r2_var_denom
+        r2_cvar = 1.0 - r2_cvar_num.detach() / r2_cvar_denom.detach()
+
+        # print(var_intercept, cvar_intercept)
+        # print(r2_cvar_num, r2_cvar_denom)
+        # print(n_gt_less_than_var, n_samples)
 
         alpha_implied = n_gt_less_than_var / n_samples
         alpha_implied = alpha_implied.detach().cpu().numpy()
