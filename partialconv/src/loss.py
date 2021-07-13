@@ -37,6 +37,7 @@ class CvarLoss(nn.Module):
                      'cvar': cvar_loss}
 
         if self.use_monotonic_loss:
+            # TODO:  check if output_alpha_plus should be detached, to not use gradients
             monotonic_loss = 0.0
             var_alpha_plus = output_alpha_plus[:,0,:,:]
             monotonic_loss += self.monotonic_loss(var_alpha_plus, var, mask)

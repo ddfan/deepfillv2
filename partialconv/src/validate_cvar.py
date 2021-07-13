@@ -69,14 +69,27 @@ class Feedforward(nn.Module):
         self.fc1 = nn.Linear(self.input_size, self.hidden_size)
         self.fc2 = nn.Linear(self.hidden_size, self.hidden_size)
         self.fc3 = nn.Linear(self.hidden_size, self.output_size)
-        self.activation = nn.LeakyReLU()
+        self.activation = nn.Tanh()
 
-    def forward(self, x):
-        hidden1 = self.fc1(x)
+        torch.nn.init.xavier_uniform_(self.fc1.weight)
+        torch.nn.init.xavier_uniform_(self.fc2.weight)
+        torch.nn.init.xavier_uniform_(self.fc3.weight)
+
+
+    def forward(self, x, alpha):
+        inputs = torch.cat((x,alpha), dim=1)
+        hidden1 = self.fc1(inputs)
         hidden2 = self.activation(hidden1)
         hidden2 = self.fc2(hidden2)
         hidden3 = self.activation(hidden2)
         output = self.fc3(hidden3)
+
+        # var = output[:,0:1]
+        # cvar_less_var = output[:,1:2]
+        # cvar_less_var = torch.sigmoid(cvar_less_var)
+
+        # output = torch.cat((var, cvar_less_var), dim=1)
+        # output = self.activation(output)
 
         return output
 
@@ -85,20 +98,31 @@ class CvarLoss(nn.Module):
     def __init__(self, loss_huber=0.1):
         super(CvarLoss, self).__init__()
         self.l1 = nn.L1Loss()
+        # self.l1 = nn.MSELoss()
         self.loss_huber = loss_huber
-        self.var_weight = 10.0
-        self.cvar_weight = 1.0
+        self.var_weight = 1.0
+        self.cvar_weight = 0.1
+        self.mono_weight = 0.001
+        self.monotonic_loss_delta = 0.001
 
-    def forward(self, y_pred, gt, alpha):
+    def forward(self, y_pred, gt, alpha, output_alpha_plus):
         var = y_pred[:, 0]
-        cvar_less_var = y_pred[:, 1]
-        cvar = cvar_less_var + var.detach()
+        # cvar_less_var = y_pred[:, 1]
+        # cvar = cvar_less_var + var.detach()
+        cvar = y_pred[:,1]
 
         var_loss = self.var_huber_loss(gt, var, alpha)
         cvar_calc = self.cvar_calc(gt, var, alpha)
         cvar_loss = self.l1(cvar, cvar_calc.detach())
 
-        return self.var_weight * var_loss + self.cvar_weight * cvar_loss
+        monotonic_loss = 0.0
+        var_alpha_plus = output_alpha_plus[:,0]
+        monotonic_loss += self.monotonic_loss(var_alpha_plus.detach(), var)
+        # cvar_alpha_plus = output_alpha_plus[:,0] + output_alpha_plus[:,1]
+        # cvar_alpha_plus = output_alpha_plus[:,1,:,:]
+        # monotonic_loss += self.monotonic_loss(cvar_alpha_plus.detach(), cvar)
+
+        return self.var_weight * var_loss + self.cvar_weight * cvar_loss + self.mono_weight * monotonic_loss
 
         # return self.l1(y_pred[:,0], gt)
 
@@ -122,16 +146,20 @@ class CvarLoss(nn.Module):
 
         return torch.mean(loss)
 
+    def monotonic_loss(self, val_alpha_plus, val):
+        diff = torch.clamp(val_alpha_plus - val, max=0.0) / self.monotonic_loss_delta
+        smoothed_mae = torch.exp(diff) - diff - 1.0
+        return torch.mean(smoothed_mae)
 
 def main():
 
     # create sample data
     print("creating dataset")
-    dataset = DistDataset(n_samples=1000)
+    dataset = DistDataset(n_samples=2000)
     test_dataset = DistDataset(n_samples=100)
 
     dataloader = DataLoader(dataset,
-                           batch_size=128,
+                           batch_size=2,
                            shuffle=True)
 
     test_dataloader = DataLoader(test_dataset,
@@ -140,21 +168,22 @@ def main():
 
     print("building network")
     # create network
-    model = Feedforward(1, 64, 2)
+    model = Feedforward(2, 256, 2)
     criterion = CvarLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.00001)
+    optimizer = torch.optim.Adam(model.parameters())
 
     # train network!
     print("training")
-    epoch = 1000
+    epoch = 10
     for epoch in range(epoch):
         model.train()
         total_loss = 0
         for step, (x_input, y_output, alpha) in enumerate(dataloader):
             optimizer.zero_grad()    # Forward pass
-            y_pred = model(x_input)    # Compute Loss
-            loss = criterion(y_pred, y_output, alpha)
-
+            y_pred = model(x_input,alpha)    # Compute Loss
+            # print(x_input.transpose(0,1), alpha.transpose(0,1), y_pred.transpose(0,1))
+            output_alpha_plus = model(x_input, alpha + 0.01)
+            loss = criterion(y_pred, y_output, alpha, output_alpha_plus)
             loss.backward()
             optimizer.step()
 
@@ -163,18 +192,31 @@ def main():
         model.eval()
         test_loss = 0
         for step, (x_input, y_output, alpha) in enumerate(dataloader):
-            y_pred = model(x_input)
-            test_loss += criterion(y_pred.squeeze(), y_output, alpha) / float(len(dataloader))
+            y_pred = model(x_input,alpha)
+            output_alpha_plus = model(x_input, alpha + 0.01)
+            test_loss += criterion(y_pred.squeeze(), y_output, alpha, output_alpha_plus) / float(len(dataloader))
 
         print('Epoch {}: \ttrain: {} \ttest: {}'.format(epoch, total_loss.item(), test_loss.item()))
-
-    # evaluate network for plotting
 
     # plot!
     plt.subplot(211)
     plt.plot(dataset.x_samp, dataset.y_samp, 'k.', markersize=2)
     plt.xlabel('x')
     plt.ylabel('y')
+
+    # evaluate network for plotting
+    alpha_test = [0.1, 0.5, 0.9]
+    x_input = np.expand_dims(np.linspace(-1, 1, 100), axis=-1)
+    x_input = torch.FloatTensor(x_input)
+    for alpha_val in alpha_test:
+        alpha = alpha_val * torch.ones_like(x_input)
+        y_out = model(x_input, alpha)
+        var = y_out[:, 0]
+        # cvar = y_out[:,0] + y_out[:,1]
+        cvar = y_out[:, 1]
+
+        plt.plot(x_input.tolist(), var.tolist(), 'r')
+        plt.plot(x_input.tolist(), cvar.tolist(), 'g')
 
     plt.subplot(212)
     x_lin = [-1, -0.5, 0, 0.5, 1]
