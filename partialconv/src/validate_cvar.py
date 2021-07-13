@@ -119,7 +119,10 @@ class CvarLoss(nn.Module):
 
         var_loss = self.var_huber_loss(gt, var, alpha)
         cvar_calc = self.cvar_calc(gt, var, alpha)
-        cvar_loss = self.l1(cvar, cvar_calc.detach())
+        if torch.sum(torch.gt(gt, var)) > 0:
+            cvar_loss = torch.sum(torch.abs(cvar - cvar_calc.detach())) / torch.sum(torch.gt(gt, var))
+        else:
+            cvar_loss = 0.0
 
         monotonic_loss = 0.0
         var_alpha_plus = output_alpha_plus[:,0]
@@ -133,7 +136,7 @@ class CvarLoss(nn.Module):
         # return self.l1(y_pred[:,0], gt)
 
     def cvar_calc(self, gt, var, alpha):
-        return torch.clamp(gt - var, min=0.0) / (1.0 - torch.clamp(alpha, max=0.99)) + var
+        return torch.clamp(gt - var, min=0.0) + var
 
     def var_huber_loss(self, gt, var, alpha):
         # compute quantile loss
@@ -161,7 +164,7 @@ def main():
 
     # create sample data
     print("creating dataset")
-    dataset = DistDataset(n_samples=2000)
+    dataset = DistDataset(n_samples=10000)
     test_dataset = DistDataset(n_samples=100)
 
     dataloader = DataLoader(dataset,
@@ -207,42 +210,54 @@ def main():
 
     # plot!
     plt.subplot(211)
-    plt.plot(dataset.x_samp, dataset.y_samp, 'k.', markersize=2)
+    plt.plot(dataset.x_samp[:2000], dataset.y_samp[:2000], 'k.', markersize=1,  label='_nolegend_')
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.xlim(-3,4)
+    plt.xlim(-3,3)
 
     # evaluate network for plotting
     alpha_test = [0.1, 0.5, 0.9]
-    x_input = np.expand_dims(np.linspace(-3, 4, 100), axis=-1)
+    cmap = plt.cm.plasma(np.linspace(0, 0.8, len(alpha_test)))
+    x_input = np.expand_dims(np.linspace(-3, 3, 100), axis=-1)
     x_input = torch.FloatTensor(x_input)
-    for alpha_val in alpha_test:
+    for i, alpha_val in enumerate(alpha_test):
         alpha = alpha_val * torch.ones_like(x_input)
         y_out = model(x_input, alpha)
         var = y_out[:, 0]
         cvar = y_out[:,0] + y_out[:,1]
         # cvar = y_out[:, 1]
 
-        plt.plot(x_input.tolist(), var.tolist(), 'r')
-        plt.plot(x_input.tolist(), cvar.tolist(), 'g')
+        plt.plot(x_input.tolist(), var.tolist(), color=cmap[i])
+        plt.plot(x_input.tolist(), cvar.tolist(), ':', color=cmap[i],  label='_nolegend_')
 
+    leg = [r'$\alpha=$' + str(a) for a in alpha_test]
+    plt.legend(leg)
     plt.subplot(212)
-    x_lin = [-2,0,2,4]
-    cmap = plt.cm.viridis(np.linspace(0, 1, len(x_lin)))
+    x_lin = [-2,0,2]
+    cmap = plt.cm.brg(np.linspace(0, 1, len(x_lin)))
 
     for i, x in enumerate(x_lin):
-        y_lin = np.linspace(-3, 4, 100)
+        y_lin = np.linspace(-3, 3, 100)
         p_lin = dataset.p(x, y_lin)
-        plt.plot(y_lin, p_lin, color=cmap[i])
+        plt.plot(y_lin, p_lin, color=cmap[i], alpha=0.8)
+        x_tensor = torch.FloatTensor(np.array([[x]]))
+        alpha_tensor = torch.FloatTensor(np.array([[0.9]]))
+        y_out = model(x_tensor, alpha_tensor)
+        var = y_out[:, 0]
+        cvar = y_out[:,0] + y_out[:,1]
+        var = var.detach().numpy()
+        cvar = cvar.detach().numpy()
+        plt.plot([var, var], [0, dataset.p(x, var)], color=cmap[i],  label='_nolegend_', alpha=0.8)
+        plt.plot([cvar, cvar], [0, dataset.p(x, cvar)], ':', color=cmap[i],  label='_nolegend_', alpha=0.8)
 
     leg = [r'$x=$' + str(x) for x in x_lin]
     plt.legend(leg)
     plt.xlabel('y')
     plt.ylabel('p(y)')
     # f.legend(leg, bbox_to_anchor=(0.5, 0.4), loc="center", ncol=4)
-    # plt.tight_layout()
+    plt.tight_layout()
 
-    # plt.savefig("huber.pdf", borderaxespad=1, bbox_inches="tight")
+    plt.savefig("toy_cvar.pdf", borderaxespad=1, bbox_inches="tight")
 
     plt.show()
 

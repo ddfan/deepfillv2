@@ -32,6 +32,7 @@ class CvarLoss(nn.Module):
         # need to normalize l1 loss by number of valid error pixels.
         cvar_loss = self.l1(mask * cvar, mask * cvar_calc.detach()) # * \
              # torch.sum(mask).detach() / torch.sum(torch.gt(gt,var) * mask).detach()
+        # TODO:  check this cvar loss, try the non-scaled approach
 
         loss_dict = {'var': var_loss,
                      'cvar': cvar_loss}
